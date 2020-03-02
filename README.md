@@ -47,7 +47,7 @@ We can't make any assumption yet about removing the `store` and `alloca` themsel
 
 `RedundantLoadPass` implements this optimization by caching the `ptr` and most recently stored `value` at `ptr` into a map, and when a `load` opcode is found the map is searched. If the `load`'s `ptr` is cached, then the `load` can be elided with the `value` known to be stored at the `ptr`.
 
-After the `RedundantLoadPass` is run the all previous instance of the target pattern will be replaced to look like the following:
+After the `RedundantLoadPass` is run the all previous instances of the target pattern will be replaced to look like the following:
 
 ```
 %3 = alloca i32, align 4
@@ -75,7 +75,7 @@ If the basic block who the data is transferred to had multiple predecessors then
 
 `MemoryTransferPass` implements this optimization by caching the `ptr` and most recently stored `value` at `ptr` into a map, and when a `br` opcode is found the branch successors with a single predecessor are searched. While searching the successor basic blocks, if a `load` occurs from one of the cached `ptr`s the `load` is elided with the `value` known to be stored at the `ptr`.
 
-After the `MemoryTransferPass` is run the all previous instance of the target pattern will be replaced to look like the following:
+After the `MemoryTransferPass` is run the all previous instances of the target pattern will be replaced to look like the following:
 
 ```
   store i32 %0, i32* %3, align 4
@@ -100,7 +100,7 @@ A `ptr` defined by an `alloca` instruction local to an IR function where only `s
 
 `UnusedStorePass` implements this optimization by identifying every `store` to a `ptr` with no other users besides `store` instructions. The identified `store`s are pruned from their basic block parents. This pruning will by matter of course, deplete the users of the `ptr`'s definition (an `alloca` instruction). If a `store` was pruned, the basic block is then pruned of `alloca` instructions with no users.
 
-After the `UnusedStorePass` is run the all previous instance of the target pattern will be eliminated.
+After the `UnusedStorePass` is run the all previous instances of the target pattern will be eliminated.
 
 ## Primitive Branch Pass
 
