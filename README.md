@@ -71,9 +71,9 @@ In the `max` and `min` IR functions, there exists a pattern where a virtual regi
   store i32 %7, i32* %3, align 4
 ```
 
-If the basic block who the data is transferred to had multiple predecessors then the value could potentially be derived from either predecessor. Because the value is transferred to a basic block with a single predecessor, the transferred value can be deduced by the `store` in the parent basic block.
+If the basic block who the data is transferred to had multiple predecessors then the value could be derived from either predecessor. Because the value is transferred to a basic block with a single predecessor, the transferred value can be deduced from the `store` in the parent basic block.
 
-`MemoryTransferPass` implements this optimization by caching the `ptr` and most recently stored `value` at `ptr` into a map, and when a `br` opcode is found the branch successors are searched. While searching the successor basic blocks, if a `load` occurs from one of the cached `ptr`s the `load` is elided with the `value` known to be stored at the `ptr`.
+`MemoryTransferPass` implements this optimization by caching the `ptr` and most recently stored `value` at `ptr` into a map, and when a `br` opcode is found the branch successors with a single predecessor are searched. While searching the successor basic blocks, if a `load` occurs from one of the cached `ptr`s the `load` is elided with the `value` known to be stored at the `ptr`.
 
 After the `MemoryTransferPass` is run the all previous instance of the target pattern will be replaced to look like the following:
 
