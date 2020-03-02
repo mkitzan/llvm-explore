@@ -88,8 +88,20 @@ After the `MemoryTransferPass` is run the all previous instance of the target pa
 
 ## Unused Store Pass
 
-todo
+After having run the previous two passes, there are a number of `store` and `alloca` instructions to which no further users exist. The pattern looks like the following in IR:
+
+```
+%4 = alloca i32, align 4
+...
+store i32 %1, i32* %4, align 4
+```
+
+A `ptr` defined by an `alloca` instruction local to an IR function where only `store` instruction are users can be eliminated entirely, because the memory goes unread through the lifetime of the memory. If the `ptr` is used in any other way besides a `store` then we can not eliminate the `ptr` definition and users.
+
+`UnusedStorePass` implements this optimization by identifying every `store` to a `ptr` with no other users besides `store` instructions. The identified `store`s are pruned from their basic block parents. This pruning will by matter of course, deplete the users of the `ptr`'s definition (an `alloca` instruction). If a `store` was pruned, the basic block is then pruned of `alloca` instructions with no users.
+
+After the `UnusedStorePass` is run the all previous instance of the target pattern will be eliminated.
 
 ## Primitive Branch Pass
 
-todo
+Gotta actually write this one, but it will try to pattern match instances of branching with the sole purpose of updating memory where the terminating branch loads the stored value for use.
