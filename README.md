@@ -78,7 +78,7 @@ If the basic block who the data is transferred to had multiple predecessors then
 After the `MemoryTransferPass` is run the all previous instances of the target pattern will be replaced to look like the following:
 
 ```
-  store i32 %0, i32* %3, align 4
+  store i32 %1, i32* %4, align 4
   ...
   br i1 %5, label %6, label %7
 
