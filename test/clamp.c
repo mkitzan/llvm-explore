@@ -1,22 +1,22 @@
 // simple functions to optimize with LLVM passes
-int min(int v0, int v1)
+int min(int value, int min)
 {
-	if (v0 > v1)
+	if (value > min)
 	{
-		v0 = v1;
+		value = min;
 	}
 	
-	return v0;
+	return value;
 }
 
-int max(int v0, int v1)
+int max(int value, int max)
 {
-	if (v0 < v1)
+	if (value < max)
 	{
-		v0 = v1;
+		value = max;
 	}
 	
-	return v0;
+	return value;
 }
 
 int clamp(int value, int m, int M)
@@ -24,4 +24,14 @@ int clamp(int value, int m, int M)
 	value = min(value, M);
 	value = max(value, m);
 	return value;
+}
+
+int branchless_min(int value, int min)
+{
+	return value ^ ((min ^ value) & -(value > min));
+}
+
+int branchless_max(int value, int max)
+{
+	return value ^ ((max ^ value) & -(value < max));
 }

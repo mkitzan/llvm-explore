@@ -42,6 +42,28 @@ define dso_local i32 @clamp(i32, i32, i32) #0 {
   ret i32 %5
 }
 
+; Function Attrs: noinline nounwind optnone uwtable
+define dso_local i32 @branchless_min(i32, i32) #0 {
+  %3 = xor i32 %1, %0
+  %4 = icmp sgt i32 %0, %1
+  %5 = zext i1 %4 to i32
+  %6 = sub nsw i32 0, %5
+  %7 = and i32 %3, %6
+  %8 = xor i32 %0, %7
+  ret i32 %8
+}
+
+; Function Attrs: noinline nounwind optnone uwtable
+define dso_local i32 @branchless_max(i32, i32) #0 {
+  %3 = xor i32 %1, %0
+  %4 = icmp slt i32 %0, %1
+  %5 = zext i1 %4 to i32
+  %6 = sub nsw i32 0, %5
+  %7 = and i32 %3, %6
+  %8 = xor i32 %0, %7
+  ret i32 %8
+}
+
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
 !llvm.module.flags = !{!0}
