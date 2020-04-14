@@ -1,0 +1,115 @@
+GPU Architecture Notes
+
+	Generalized data parallel workloads
+	-	Identical, independent computation, and multiple data inputs
+	-	SIMD "Single Instruction Multiple Data"
+		=	Single thread executing data parallel ops 
+		=	One instruction "stream"/PC with one register file
+	-	SIMT "Single Instruction Multiple Thread"
+		=	Identical work split across multiple threads in a single lockstep
+		=	Multiple threads executing identical scalar ops
+		=	One instruction "stream"/PC with multiple register files
+	-	CPU based vectorization is a SIMD processing architecture
+	-	GPU based compute is SIMT processing architecture
+	
+	GPU Multicore Multithreaded SIMT
+	-	GPUs perform streaming memory access: DRAM latency can be in excess of 100s GPU cycles
+	-	Many SIMT threads grouped together into a single GPU core
+	-	A GPU is composed of many cores
+	-	GPU memory system is designed for throughput 150 gb/sec
+
+	GPU Programming Models
+	-	CUDA: Nvidia proprietary, first real GPGPU language
+	-	OpenCL: From Khronos/OpenGL, wide industry support -> Apple
+	-	C++ AMP and OpenACC: high level abstractions of CUDA and OpenCL
+
+	OpenCL
+	-	Early GPU languages, like early CPU languages, are light abstractions of the hardware
+	-	GPU maps to NDRange (N-dimesions refers to the dimensional index space of the data)
+	-	GPU Core maps to Workgroup (data space is partitioned across Workgroups)
+	-	Workitem is the data partitioned to the Wavefront
+	-	Wavefront is the set of SIMT groups assigned to a Workitem
+	-	Workgroup is comprised of many Wavefronts
+	-	Kernel is a function run on an NDRange
+		=	Same Kernel is executed on each Workitem
+	-	Hierarchy
+		=	Workgroup
+		=	Wavefront
+		=	Workitem
+		=	Kernel
+
+GPU Microarchitecture
+
+	Compute Unit (CU) == GPU Core
+	-	Contains N SIMT thread groups units (N=4)
+	-	CU "picks" one SIMT unit per cycle for scheduling
+	
+	SIMT Unit
+	-	Runs M wavefront instruction buffer (M=10)
+	-	Takes K cycles to execute one wavefront (K=4)
+
+	M wavefronts * N SIMT units = M*N Active Wavefronts per CU
+	L workitems * (M*N active wavefronts) = L*M*N active workitems per CU 
+
+	16 wide ALU pipeline supporting 16x4 execution
+
+	Address Coalescing
+	-	Wavefront issues memory requests proportional to number of work items
+	-	Often, workitems in same wavefront request from same cache block
+	-	Merge many workitem requests into a single cache block request
+	-	Reduce memory bandwidth usage
+
+	GPU Caches
+	-	GPU caches exist to maximize throughput not spatial/temporal locality
+	-	L1 Cache
+		=	Many workitems share L1 cache
+		=	Small L1 cache allocation per thread
+		=	L1 cache coalesce requests to same cache block by different workitems
+		=	Cache block is kept just long enough so each workitem can access it once
+		=	Goal: reduce memory bandwith
+	-	L2 Cache
+		=	Many more workitems share L2 cache
+		=	Larger L2 cache allocation per thread
+		=	Exist as a memory staging buffer
+		=	tolerate memory bandwith reduction
+	-	Local Memory
+		=	Separate address space
+		=	Software managed to control occupancy and eviction rates
+		=	Shared by wavefronts in a workgroup
+		=	Also called: Shared memory and Group memory
+
+SIMT Control Flow
+	-	Workitems must run in lockstep, though all work items don't have to commit their results
+	-	All branching paths must be computed
+	-	An "execution mask" selects active threads which will commit their results
+	-	Threads re-converge after both branches are computed and results committed
+	-	Execution mask is reset at point of convergence
+	-	Branch divergence can lead to race conditions
+
+Memory Concerns
+	-	Parallel access of memory is good for performance
+		=	Promotes a healthy cache
+	-	Sequential access of memory is bad for performance
+		=	Increases cache invalidation and misses
+	-	When one workitem stall on an access the whole wavefront must stall
+	-	Data layout and partitioning is important to performance
+		=	Proper padding of data and data access patterns in algorithm important
+	-	Request data less often :: do more math instead
+	-	Fetch data less often :: resort to share/reuse data
+
+Communication and Synchronization
+	-	Workitem to workitem (same wavefront) :: yes, workitems are in lockstep
+	-	Workitem to workitem (different wavefront, same workgroup) :: local barrier
+	-	Workitem to workitem (different wavefront, different workgroup) :: No in OpenCL
+
+Consistency and Coherence
+	-	Weak, program order respected within single workitem only
+	-	Fences, ensures all previous accesses are visible before preceding
+		=	GPU fences are scoped and only apply to a subset of workitems in a system
+	-	GPU consistency model is Single Writer, Multiple Reader (does not require coherence)
+
+Modern Architectures
+	-	Tighter integration of CPU and GPU
+		=	Reduces offload cost
+		=	Reduce memory copies/transforms cost
+		=	Better power management

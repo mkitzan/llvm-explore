@@ -1,0 +1,44 @@
+TableGen Notes
+
+Architecture
+-	TG Source *.td -> Front End (parse, eval) -> Ctor Record Defs ->
+	=	InstrInfo backend, ISel backend, ... other backends ... -> C++ Defs and Code
+-	Templ macro processor
+-	Record is the produced data
+	=	Named Key-Value dictionaries
+	=	Class based definitions can inherit
+-	Class is a schema for constructing Records containing similar features
+
+LLVM .td Sources
+-	Target specific .td
+	=	InstrInfo, Architecture, CallingConv, RegisterInfo, Schedule
+-	Include from https://github.com/llvm/llvm-project/blob/master/llvm/include/llvm/Target/Target.td
+	=	Target.td, target-independent interface implemented by code generators
+	=	Contains classes for Registers, Instrs, InstrInfo, InstrEncoding, Predicates, Target
+	=	Target.td is the primary file included in backend TableGen to create defs and classes specific to a real target
+-	Include from https://github.com/llvm/llvm-project/blob/master/llvm/include/llvm/IR/Intrinsics.td
+	=	Intrinsics.td, LLVM intrinsic function info
+	=	Contains defs for Exceptions, MemoryInfo, Returns, other function information
+
+"#" is a string concat operation
+
+"let" Statement
+-	Override values in a record to avoid passing all info as templ arg
+-	Has late evaluation, so latest "let" statement wins
+-	Consider using instead of templ args
+
+"multiclass"
+-	Templs for a set of records which must share some templ arg
+-	Instantiated through "defm" (where standard records are instantiated with "def")
+-	"defm" can't have a body (no overrides), use a "let" statement instead
+
+Built-in Functions
+-	Prefixed by "!"
+-	"!eq", "!ne", "le", "!lt", "!ge", "!gt"
+-	"!add", "!shl", "!sra", "!and", "!or"
+-	"!if"
+-	"!head", "!tail", "!listconcat", "!size", "!empty"
+-	"!foreach", "!foldl" (foreach is a map function)
+-	"!con", "!dag"
+-	"!strconcat", "!subst"
+-	"!isa", "!cast" (allows casting between records and strings)

@@ -1,0 +1,46 @@
+LLVM Testing Tool 'lit'
+
+LIT Test is Three Things
+-	IR module
+-	Command to run as a comment '; RUN: ...'
+-	Expected output as a comment '; CHECK: ...'
+
+FileCheck performs the comparison between command output and expected output
+
+LLVM Tools and Testing Frameworks
+
+Unit Tests
+-	Google Test
+	=	Run C++ code
+	=	Group by individual Test and Test Suites
+	=	Can have test fixtures: same data applied to many tests
+
+Regression Tests
+-	FileCheck and Lit
+-	Perform checks between actual output and expected output
+-	Lit
+	=	Generally runs LLVM on small piece of test code to trigger specific behavior
+	=	Lit can be directed at a directory or specific file to run all specified tests
+	=	Designed to find tests and run what the test says to run
+-	FileCheck
+	=	Performs the actual check between files
+	=	Tries to make sequential matches using:
+		-=	'; CHECK' if something appears
+		-=	'; CHECK-NEXT' if something immediately appears
+		-=	'; CHECK-NOT' if something does no appear
+		-=	'; CHECK-SAME' if something also appears on the same line
+		-=	'; CHECK-EMPTY' that next line has nothing
+		-=	'; CHECK-COUNT-<num>' if something appears <num> times
+		-=	'; CHECK-DAG' if something appears in order
+	=	CMD line option '-check-prefix=<pat>' allows multiple tests to have different configurations
+
+Debug Info Tests
+Whole Program Tests
+-	Google Benchmark
+
+Infrastructure
+-	LNT
+-	Build Bots
+
+LLVM CI and Building
+-	Clang is build in two stages: system compiler, and stage 1 compiler

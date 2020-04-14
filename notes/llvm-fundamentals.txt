@@ -1,0 +1,78 @@
+LLVM
+
+LLVM IR
+-	Intermediate representation which is a generic assembly language
+-	Output of the front end and middle end passes
+-	Many transformations come naturally
+-	Easy to lower to targets
+-	Optimizations made in IR are realized in the target assembly
+-	Have opcode and a set of input explicitly typed operands which produce one or noe results values
+-	Instruction classes
+	=	Arithmetic
+	=	Compare
+	=	Control flow
+	=	Calls
+	=	Load and stores
+-	Does not account for target instruction latency, instruction set, or registers
+-	LLVM IR is in SSA form
+
+LLVM Basic Blocks
+-	Each has a label or id number
+-	List of sequential instructions
+-	Final instruction is terminator (all BBs have a terminator)
+	=	Terminator informs where the control flows to after execution of the BB
+-	Essentially represents a sequence of ASM instructions within a label
+
+LLVM Functions
+-	Have a name and type signature
+-	Function is composed of BBs
+-	First BB is called the entry block
+-	Control flow is modeled by the terminators of the function's BBs
+
+LLVM Module
+-	Top level container of a program
+-	Contains: functions, declarations, globals, more...
+
+User and Uses
+-	"Definition" is the where the value of identifier is set
+-	Any "Definition" which "Use" another identifier is a "User" of that identifier
+-	You can access a list of "Users" for any "Definition"
+
+Formats of IR
+-	Textual (.ll)
+	=	Human readable, used in pass development and debugging
+-	Bitcode (.bc)
+	=	Efficient storage format and backwards compatible
+-	In memory, represents program as object used in C++ during transformations
+
+IR Transformations
+-	When removing a block must correct the following
+	=	All successors to the block
+	=	All users to the block
+
+Middle End Passes
+-	Goal is to reduce IR instructions and simplify control flow
+-	Performs optimizations which generalize to many different targets
+-	Does not take into account target specific information 
+
+TargetTransformInfo (lib/Analysis)
+-	Passes can query an implemented TargetTransformInfo for statistic and info about target qualities
+-	Only captures target qualities used to model costs
+-	Does not inform about target specific opcodes
+
+Codegen Passes
+-	Run after instruction selection, does not work on IR
+
+TargetInstrInfo
+-	Describes instructions used by the target
+-	Instruction syntax/semantics
+-	Serialized in TableGen ??
+
+Codegen Testing Tool 'llc'
+-	Compiles LLVM IR into target specific ASM
+-	'-mtriple <arch>' to set output architecture
+-	'-stop-before=<test pass>' output MIR/metadata before running the test pass
+-	'-stop-after=<test pass>' ouput MIR/metadata after running the test pass
+-	Can run specific pass in isolation on MIR using '-run-pass=<test pass>'
+
+Inject custom passes into 'custom pass config'

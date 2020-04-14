@@ -1,0 +1,76 @@
+Software Optimizations
+
+HIGH LEVEL
+
+SW Pipelining
+-	Convert the linear flow of a loop body into a wrapped flow
+	=	Top of loop body is end of pipeline and end of loop body is beginning of pipeline
+	=	Before loop is a prologue where the beginning is executed leading into the pipeline
+	=	After loop is a epilogue where the end is executed closing the pipeline
+-	Elim direct dependencies between registers
+-	Pressures the register file storing the increased temporary variables
+
+Loop Unrolling
+-	Repetition of instructions within loop body multiple times to reduce the branching factor
+-	Increases code size linear to unrolling factor
+-	Pressures register file usage
+-	Can reduce direct dependencies
+
+Grafting
+-	Entire replication of loop body to reduce branching factor
+-	Useful when loop count is telegraphed
+-	Increases code size linear to grafting factor
+
+Operator strength reduction
+-	Replace costly opcodes by less expensive ones
+
+Move externals local
+-	Copy global data or referenced data to local data
+-	Write result back to global or referenced data once
+
+Inline functions
+-	Small, repeat functions can be inlined into caller to elim call cost
+
+Long versus short type
+-	When clearing array of a smaller type, use a large type to clear multiple elements at once
+-	Array must be aligned correctly and of appropriate length
+
+Use word sized types where possible
+-	Smaller types are often simulated within word sized types which comes at cost
+
+Memory alias disambiguation
+-	Compiler can't assert whether two pointers will not point to same thing or have overlapping data
+-	Use restrict pointers to tell compiler function won't be called with overlapping data
+
+Lookup table
+-	To elim conditional branching use lookup table to store precomputed result of appropriate data
+-	Switch statement can generally be reduced to lookup table
+
+Union and alignment forcing
+-	To guarantee a pointer it aligned for any type it may point to use a union of the set of types it could point to
+
+LOWER LEVEL
+
+Constant folding and propagation
+-	Folding simplifies a constant expression at into a single constant at compile time
+-	Propagation substitutes known constants into expressions at compile time
+
+Common subexpression elimination
+-	Replace instances of identical expressions with a single variable holding the value
+
+Partial redundancy elimination
+-	Elim redundant expressions on some control paths
+-	Compute expression once per path and store in temp until needed
+
+Peephole optimizations
+-	Analyze adjacent instructions to determine if they could be collapsed into a shorter or more optimal sequence
+
+Dead code elimination
+-	Determine and prune unreachable code from binary
+-	Determine irrelevant code and prune from binary
+
+Loop fusion
+-	Collapse two independent loops together into a single loop
+
+Loop fission
+-	Separate a single loop into two independent loops

@@ -1,0 +1,73 @@
+Apple GPU Compiler
+
+Apple and LLVM Project
+-	Live on trunk to benefit from upstream improvements
+	=	How frequent are the merges from upstream?
+	=	Merge conflicts
+		-=	How often is the team fighting merge conflicts?
+		-=	Who is responsible for handling them?
+	=	How is the team building the compilers?
+	=	How is upstream monitored for important improvements?
+-	Identify regressions
+	=	What regressions are being monitored?
+	=	How are regression statistics being monitored?
+	=	How do regression testing feedback into build pipeline? (Probably varies based on statistic)
+
+CI with LLVM
+-	LLVM trunk is merged into master GPU branch
+-	Every year a production branch is made from master GPU branch
+-	Yearly production branch is merged to master GPU branch
+-	Keeps GPU compiler very close to LLVM trunk
+	=	On subcomponents and features, how does the branching model extend?
+	=	What's the git workflow like? Are there any team conventions, like don't rebase public branches?
+
+GPU SW Stack
+-	User interacts with App which chooses shader to compiler / exe
+-	App communicates with Metal FW / GPU driver to compile shader
+-	Metal FW send shader to Metal FE service which compiles it to IR and sends it back
+-	Metal FW sends IR translation of shader to Backend which returns object code and sends it back
+-	GPU driver links and runs the executable then user gets their results
+
+About GPUs
+-	Threads are grouped together and execute in lockstep
+-	Parallelism is implicit in the hardware, but a single thread executes imperative code which is not parallel explicit
+-	Latency hiding is accomplished through having multiple thread groups being round robin scheduled as blocks occur
+-	Thread groups share a large register file
+	=	Spilling and register access is expensive because of the mass of data required to satisfy each thread
+	=	The number of resident thread groups on the GPU is impacted by the size of register usage of each group
+	=	The fewer groups the poorer the latency hiding capability bc fewer groups to switch to
+-	When a group spills data: all threads in group spill at once
+	-=	All threads try to access data or registers at once
+	-=	Amount of data is magnified by the number of threads: 1024 threads x 32-bit register = 4kb spill
+	-=	Spilling is not an effective way to manage register file pressure to increase resident group count
+
+GPU Pipeline
+-	Inline unoptimized IR: Apple GPUs support function calls, but usually inlining is more perf safe
+-	Big functions called multiple times are not inlined to improve instruction cache
+-	Inlining process:
+	=	Dead arg elimination
+	=	Argument promotion, pass-by-value if possible
+	=	Inlining pass, uses LLVM policies with custom thresholds which tend toward inlining
+	=	IPRA: Inter-Procedural Register Allocation is leveraged to avoid unnecessary calling convention load/stores
+-	SROA: scalar replacement of aggregate
+	=	Optimization to convert the creation of arrays into individual component scalars
+	=	Shader languages specify vector type -> SROA important for converting to individual scalars
+-	Custom optimizations
+-	Loop unrolling
+	=	Branching is bad in GPUs, unrolling is important to minimize jumps
+	=	Loops may be partially unrolled so not to exceed the register file or instruction cache
+-	Flatten control flow
+	=	Speculation is used to execute both branch paths in tandem then select final results
+-	Uniform hoisting
+	=	If an expression's result will be the same across a thread group it is abstracted into a kernel and written to uniform memory
+	=	Hoisted kernel is run once, and its result is used across threads
+	=	Constant expressions are moved to uniform memory
+-	Control flow graph structurization
+	=	For convoluted control flow where execution masking is difficult, blocks may be duplicated to simplify control flow
+	=	Only performed on small blocks, because it can lead to duplicate execution
+-	Instruction selection
+	=	GlobalISel
+-	Scheduling
+	=	Key to use instruction level parallelism, to improve latency hiding, and reducing power consumption
+	=	Push memory access up to increase latency hiding
+	=	Order memory accesses by address to coalesce memory access to increase cache performance
