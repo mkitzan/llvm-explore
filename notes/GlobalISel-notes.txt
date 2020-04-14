@@ -1,0 +1,76 @@
+GlobalISel
+
+References
+-	https://www.youtube.com/watch?v=6tfb344A7w8 "Global Instruction Selection Status"
+-	https://www.youtube.com/watch?v=8427bl_7k1g "Generating Optimized Code with GlobalISel"
+-	https://www.youtube.com/watch?v=Zh4R40ZyJ2k "Tutorial: GlobalISel"
+
+Architecture
+-	Organized as a set of four MachineFunctionPass subclasses
+	=	IRTranslator -> Legalizer -> RegisterBankSelector -> InstructionSelector
+-	High-level pipeline
+	=	Convert LLVM IR to gMIR and perform target ABI lowering
+	=	Replace illegal gMIR instructions with target legal instructions
+	=	Choose register banks for each virtual register
+	=	Select target instructions converting gMIR to MIR
+-	AArch64 implemented to support GlobalISel (ref to find concrete examples of client usage)
+
+IRTranslator
+-	Takes LLVM IR and converts it into Generic IR (gMIR)
+-	Core entry: IRTranslator::runOnMachineFunction ~L2205
+-	Implements hooks for compiler for translating instrs of form IRTranslator::translate*
+-	Uses CallLowering from the Target for ABI lowering
+	=	Invokes: lowerFormalArguments, lowerCall, and lowerReturn
+-	lowerFormalArguments
+	=	Converts MachineFunction argument capture to be ABI compliant MIR
+		-=	Lowering performed per-MachineFunction in IRTranslator::runOnMachineFunction ~L2290
+	=	Takes MIRBuilder, Function, and VRegs 
+		-=	MIRBuilder is used to construct MIR into the MachineFunction being translated
+		-=	Function is the IR function to lower to gMIR
+		-=	VRegs are the virtual registers to lower arguments into (as described by ABI)
+-	lowerCall
+	=	Converts call site argument passing to be ABI compliant MIR
+		-=	Lowering performed per-call instr in IRTranslator::translateCallSite ~L1544
+		-=	IRTranslator::translateCallSite invoked in translateCall ~L1604 and translateInvoke ~L1695
+	=	Takes MIRBuilder, CallSite (CS), ResRegs, ArgRegs, SwiftErrorVReg, and GetCalleeReg
+		-=	MIRBuilder is used to construct MIR into the MachineFunction being translated
+		-=	CS is the call/invoke instruction
+		-=	ResRegs are the registers where the return value should be stored
+		-=	ArgRegs are the virtual registers containing the arguments passed
+		-=	SwiftErrorVReg is non-zero if the call has a swifterror inout parameter
+		-=	GetCalleeReg is a hook to acquire a register if the target cannot determine the destination to jump
+-	lowerReturn
+	=	Converts return instr to be ABI compliant MIR
+		-	Lowering performed per return instr in IRTranslator::translateRet ~L381
+	=	Takes MIRBuilder, Value, VRegs, and SwiftErrorVReg
+		-=	MIRBuilder is used to construct MIR into the MachineFunction being translated
+		-=	Value is the value expected to be returned
+		-=	VRegs are the virtual registers where the value is stored
+		-=	SwiftErrorVReg is non-zero if the call has a swifterror inout parameter
+-	Aggregate handling
+	=	Represents aggregate types (struct) within a single VReg
+	=	TODO[circa 2016] implement method of expressing unused bits in the VReg
+-	Constant handling
+	=	Constants are defined through G_CONSTANT gMIR instr at entry block
+	=	Means constants will exist inside a VReg rather than as an immediate operand to gMIR instrs (besides G_CONSTANT)
+	=	Placing constants in VRegs immediately pressures register file by having registers with long lifespan
+	=	TODO[circa 2016] implement method of pushing constant defs down in the function
+
+Generic Machine Instructions
+-	Prefixed by "G_"
+-	Virtual registers are typed
+	=	Scalar, s#bit
+	=	Vector, <#lane x s#bit>
+	=	Pointer, p#addrspace
+-	Virtual registers may not have a register class
+	=	Represented through an underscore ahead of VReg type
+
+Legalizer
+-	Replaces unsupported operations with supported operations
+
+RegisterBankSelector
+-	Binds generic virtual registers to a register bank
+-	Can optimize register bank assignment to improve locality of register usage
+
+InstructionSelector
+-	Select target instructions
