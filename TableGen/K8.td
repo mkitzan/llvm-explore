@@ -13,13 +13,13 @@ def K8InstrInfo : InstrInfo;
 
 def K8InstPrinter : AsmWriter
 {
-  string AsmWriterClassName  = "InstPrinter";
-  bit isMCAsmWriter = 1;
+	string AsmWriterClassName  = "InstPrinter";
+	bit isMCAsmWriter = 1;
 }
 
 def K8AsmParser : AsmParser
 {
-  bit HasMnemonicFirst = 0;
+	bit HasMnemonicFirst = 0;
 }
 
 def K8 : Target
