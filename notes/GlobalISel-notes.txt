@@ -2,6 +2,8 @@ GlobalISel
 
 **Could optimize LegalizerInfo::all ~L199 recursive function template by making args an Args&&...
 **Could future proof RegBankSelect::Mode check at RegBankSelect::assignInstr ~L628
+**Possibly collapse MF call check in InstructionSelect::runOnMachineFunction ~L230 into redundant copy pass loop ~L153
+**Could InstructionSelector::select be implemented such that subclass only implements hooks?
 
 References
 -	https://www.youtube.com/watch?v=6tfb344A7w8 "Global Instruction Selection Status"
@@ -17,6 +19,15 @@ Architecture
 	=	Choose register banks for each virtual register
 	=	Select target instructions converting gMIR to MIR
 -	AArch64 implemented to support GlobalISel (ref to find concrete examples of client usage)
+-	TargetPassConfig used to construct the entire GlobalISel pipeline
+	=	TargetMachine subclasses TargetPassConfig, so TargetMachine constructs GlobalISel pipeline
+
+MachineIRBuilder
+-	Helper class to build MachineInstr
+-	Helper class for MachineIRBuilder called MachineIRBuilderState
+	=	Maintains insertion point, machine function, TargetInstrInfo, and MachineRegisterInfo
+	=	Allows MachineIRBuilder to handle MachineInstr construction, insertion, and verification
+	=	Struct object can be transferred between different MachineIRBuilders
 
 IRTranslator
 -	Takes LLVM IR and converts it into Generic IR (gMIR)
@@ -107,4 +118,16 @@ RegisterBankSelector
 		-=	Provides built-in hooks for computing register bank instruction mapping and getting info
 
 InstructionSelector
--	Select target instructions
+-	Select target instructions: translates gMIR to MIR
+-	Traverses blocks bottom up
+-	Eliminates dead code
+-	Target implements InstructionSelector class defining how to select an opcode for a gMIR opcode
+-	Composed of two components
+	=	InstructionSelect MachineFunctionPass
+		-=	Core entry point InstructionSelect::runOnMachineFunction ~L66
+		-=	Calls core select function at InstructionSelect::runOnMachineFunction ~L135
+		-=	After selection, a second pass runs eliminating redundant copies
+			==	If a copy occurs between the same register class, replace copy dest with copy src
+	=	InstructionSelector defined by Target used by InstructionSelect
+		-=	Core select function is pure virtual -> Target must implement the whole thing
+		-=	Built-in machine operand and machine register check functions
