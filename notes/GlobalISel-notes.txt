@@ -1,6 +1,7 @@
 GlobalISel
 
 **Could optimize LegalizerInfo::all ~L199 recursive function template by making args an Args&&...
+**Could future proof RegBankSelect::Mode check at RegBankSelect::assignInstr ~L628
 
 References
 -	https://www.youtube.com/watch?v=6tfb344A7w8 "Global Instruction Selection Status"
@@ -93,6 +94,17 @@ Legalizer
 RegisterBankSelector
 -	Binds generic virtual registers to a register bank
 -	Can optimize register bank assignment to improve locality of register usage
+-	Class RegisterBank is used to describe what register banks cover what TargetRegisterClass
+-	Composed of two core components
+	=	RegBankSelect MachineFunctionPass
+		-=	Core entry point RegBankSelect::runOnMachineFunction ~L651
+		-=	Bank assignment per instr invoked at RegBankSelect::runOnMachineFunction ~L695
+		-=	RegBankSelect::assignInstr ~L622 calls helpers to find a mapping (or best mapping)
+			==	Call chain goes deep into RegBankSelect for best mapping
+	=	RegisterBankInfo defined by the Target used by RegBankSelect
+		-=	Defines mappings of RegisterClass to RegisterBanks
+		-=	Defines cross register bank copies
+		-=	Provides built-in hooks for computing register bank instruction mapping and getting info
 
 InstructionSelector
 -	Select target instructions
