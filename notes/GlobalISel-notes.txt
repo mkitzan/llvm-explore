@@ -1,6 +1,5 @@
 GlobalISel
 
-**Could optimize LegalizerInfo::all ~L199 recursive function template by making args an Args&&...
 **Could future proof RegBankSelect::Mode check at RegBankSelect::assignInstr ~L628
 **Possibly collapse MF call check in InstructionSelect::runOnMachineFunction ~L230 into redundant copy pass loop ~L153
 **Could InstructionSelector::select be implemented such that subclass only implements hooks?
@@ -131,3 +130,23 @@ InstructionSelector
 	=	InstructionSelector defined by Target used by InstructionSelect
 		-=	Core select function is pure virtual -> Target must implement the whole thing
 		-=	Built-in machine operand and machine register check functions
+
+Combiner
+-	Pass which applies combine rules to transform a pattern into a more desirable sequence of instructions
+-	GlobalISel Combiner composed of three components
+	=	Combiner
+		-=	Core entry point Combiner::combineMachineInstrs ~L98
+		-=	First loop Combiner::combineMachineInstrs ~L132 creates reverse post order traversal of MachineInstrs
+		-=	Second loop Combiner::combineMachineInstrs ~L149 attempts to combine each MachineInstr
+		-=	If a combine occurred, repeat
+	=	CombinerInfo
+		-=	Target specified which operations to combine and how to combine them
+		-=	Class which combines are delegated to by Combiner
+		-=	Core function is CombinerInfo::combine ~L67
+			==	Attempts to perform a combine with the given MachineInstr as a root
+			==	Pure virtual function, Target must implement
+			==	Generally involves a Target specific CombinerHelper
+			==	By default only combines COPY, but with optimization turned on will try all combines
+	=	CombinerHelper
+		-=	Contains a set of built-in combination functions
+		-=	Has CombinerHelper::tryCombine ~L1298 which attempts all combinations
