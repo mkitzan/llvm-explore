@@ -12,6 +12,7 @@ References
 Architecture
 -	Organized as a set of four MachineFunctionPass subclasses
 	=	IRTranslator -> Legalizer -> RegisterBankSelector -> InstructionSelector
+	=	Using MachineFunctionPass allows introduces context of entire machine function to ISel
 -	High-level pipeline
 	=	Convert LLVM IR to gMIR and perform target ABI lowering
 	=	Replace illegal gMIR instructions with target legal instructions
@@ -68,6 +69,7 @@ IRTranslator
 	=	Means constants will exist inside a VReg rather than as an immediate operand to gMIR instrs (besides G_CONSTANT)
 	=	Placing constants in VRegs immediately pressures register file by having registers with long lifespan
 	=	TODO[circa 2016] implement method of pushing constant defs down in the function
+		-=	See Localizer section for implemented solution
 
 Generic Machine Instructions
 -	Prefixed by "G_"
@@ -150,3 +152,15 @@ Combiner
 	=	CombinerHelper
 		-=	Contains a set of built-in combination functions
 		-=	Has CombinerHelper::tryCombine ~L1298 which attempts all combinations
+
+Localizer
+-	MachineFunctionPass which moves constant gMIR declarations closer to their use
+	=	Shortens the lifetime of constant defs reducing spilling
+-	Core entry point is Localizer::runOnMachineFunction ~L208
+	=	Calls to Localizer::localizeInterBlock then if changed Localizer::localizeIntraBlock
+-	Localizer::localizeInterBlock ~L107
+	=	Checks entry block for constant defs
+	=	If the constant's uses are in successor blocks, the constant's def is moved to the block's beginning
+-	Localizer::localizeIntraBlock ~L170
+	=	Scans block top to bottom and finds first user
+	=	Inserts constant def just before first user 
