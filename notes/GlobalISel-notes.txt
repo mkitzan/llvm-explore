@@ -1,5 +1,7 @@
 GlobalISel
 
+**Could optimize LegalizerInfo::all ~L199 recursive function template by making args an Args&&...
+
 References
 -	https://www.youtube.com/watch?v=6tfb344A7w8 "Global Instruction Selection Status"
 -	https://www.youtube.com/watch?v=8427bl_7k1g "Generating Optimized Code with GlobalISel"
@@ -67,6 +69,26 @@ Generic Machine Instructions
 
 Legalizer
 -	Replaces unsupported operations with supported operations
+-	Composed of three core components
+	=	Legalizer MachineFunctionPass
+		-=	Performs the iterative legalization process over a MachineFunction
+		-=	Only performs legalization on gMIR instructions Legalizer::runOnMachineFunction ~L170
+		-=	Call on LegalizerHelper to legalize gMIR instr occurs at Legalizer::runOnMachineFunction ~L229
+		-=	When an instr can't immediately be legalized it is stored in RetryList
+			==	Further iterations may produce artifacts allowing un-legalizable instr to cut anyway
+			==	Legalization retry logic occurs at Legalizer::runOnMachineFunction ~L232 and ~L248-284
+	=	LegalizerInfo defined by the Target used by Legalizer
+		-=	Defines which instrs the Target can select and how unselectable instrs should be expanded
+		-=	Legalization actions are built by Target through LegalizerInfo::getActionDefinitionsBuilder ~L425
+			==	Returns a LegalizeRuleSet which the target modifies to define its legalization rules
+	=	LegalizerHelper Target independent used by LegalizerInfo and Legalizer
+		-=	Implements the common legalization actions
+		-=	Core legalization entry point is LegalizerHelper::legalizeInstrStep ~L83
+			==	Legalization actions: Legal, NarrowScalar, WidenScalar, FewerElements, MoreElements, or Custom
+-	No illegal types only illegal operations on provided types
+-	Check usage of types in an operation against the set of actions
+	=	If action of the type's usage is Legal, do nothing
+	=	If action of the type's usage is not Legal, perform legalization action specified
 
 RegisterBankSelector
 -	Binds generic virtual registers to a register bank
