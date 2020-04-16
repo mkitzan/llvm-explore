@@ -1,4 +1,5 @@
 Apple GPU Compiler
+https://youtu.be/VFHYaH5Vr4I
 
 Apple and LLVM Project
 -	Live on trunk to benefit from upstream improvements
@@ -37,14 +38,17 @@ About GPUs
 	=	The number of resident thread groups on the GPU is impacted by the size of register usage of each group
 	=	The fewer groups the poorer the latency hiding capability bc fewer groups to switch to
 -	When a group spills data: all threads in group spill at once
-	-=	All threads try to access data or registers at once
-	-=	Amount of data is magnified by the number of threads: 1024 threads x 32-bit register = 4kb spill
-	-=	Spilling is not an effective way to manage register file pressure to increase resident group count
+	=	All threads try to access data or registers at once
+	=	Amount of data is magnified by the number of threads: 1024 threads x 32-bit register = 4kb spill
+	=	Spilling is not an effective way to manage register file pressure to increase resident group count
 
-GPU Pipeline
+PRE-ISEL GPU Pipeline
 -	Inline unoptimized IR: Apple GPUs support function calls, but usually inlining is more perf safe
 -	Big functions called multiple times are not inlined to improve instruction cache
 -	Inlining process:
+	=	Inline most code safe to reduce function call cost
+		-=	Big functions called often not inlined
+		-=	Often seen in compute workloads
 	=	Dead arg elimination
 	=	Argument promotion, pass-by-value if possible
 	=	Inlining pass, uses LLVM policies with custom thresholds which tend toward inlining
@@ -56,18 +60,29 @@ GPU Pipeline
 -	Loop unrolling
 	=	Branching is bad in GPUs, unrolling is important to minimize jumps
 	=	Loops may be partially unrolled so not to exceed the register file or instruction cache
+	=	Scheduler like big blocks, unrolling introduces bigger blocks
 -	Flatten control flow
 	=	Speculation is used to execute both branch paths in tandem then select final results
+		-=	Speculation means both branches are executed and the correct branch's results are selected at the end per-thread
+		-=	Performed on branches with small blocks
 -	Uniform hoisting
 	=	If an expression's result will be the same across a thread group it is abstracted into a kernel and written to uniform memory
 	=	Hoisted kernel is run once, and its result is used across threads
 	=	Constant expressions are moved to uniform memory
 -	Control flow graph structurization
 	=	For convoluted control flow where execution masking is difficult, blocks may be duplicated to simplify control flow
+	=	If a block has multiple predecessors which contribute to its execution mask, then it is a candidate for structurization
 	=	Only performed on small blocks, because it can lead to duplicate execution
+ISEL GPU Pipeline
 -	Instruction selection
 	=	GlobalISel
+	=	One of the biggest stages of the pipeline
+POST-ISEL GPU Pipeline
+-	Register allocation/coalescing
 -	Scheduling
-	=	Key to use instruction level parallelism, to improve latency hiding, and reducing power consumption
-	=	Push memory access up to increase latency hiding
+	=	Most important step in pipeline for performance
+	=	Key to use instruction level parallelism, to improve latency hiding, and reduce power consumption
+	=	Push memory access up to increase latency hiding, but must be aware of register pressure
+	=	Batching texture fetches to same texture
 	=	Order memory accesses by address to coalesce memory access to increase cache performance
+	=	Interleave instrutions to avoid pipeline bubbles
