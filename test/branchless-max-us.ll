@@ -1,23 +1,26 @@
-; ModuleID = '../input/ir/memory-transfer/branchless-max-mt.ll'
-source_filename = "c/branchless_max.c"
-target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-pc-linux-gnu"
+; RUN: opt -load ../build/libUnusedStorePass.so -legacy-unused-store -S %s  | FileCheck %s
 
-; Function Attrs: noinline nounwind optnone uwtable
 define dso_local i32 @branchless_max(i32 %0, i32 %1) #0 {
-  %3 = xor i32 %1, %0
-  %4 = icmp slt i32 %0, %1
-  %5 = zext i1 %4 to i32
-  %6 = sub nsw i32 0, %5
-  %7 = and i32 %3, %6
-  %8 = xor i32 %0, %7
-  ret i32 %8
+  %3 = alloca i32, align 4
+  %4 = alloca i32, align 4
+  store i32 %0, i32* %3, align 4
+  store i32 %1, i32* %4, align 4
+  %5 = xor i32 %1, %0
+  %6 = icmp slt i32 %0, %1
+  %7 = zext i1 %6 to i32
+  %8 = sub nsw i32 0, %7
+  %9 = and i32 %5, %8
+  %10 = xor i32 %0, %9
+  ret i32 %10
 }
 
-attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+; Verify all unused stores are removed
 
-!llvm.module.flags = !{!0}
-!llvm.ident = !{!1}
-
-!0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{!"clang version 9.0.0-2~ubuntu18.04.2 (tags/RELEASE_900/final)"}
+; CHECK-LABEL: @branchless_max
+; CHECK-NEXT:  [[REG_0:%[0-9]+]] = xor i32 [[ARG_1:%[0-9]+]], [[ARG_0:%[0-9]+]]
+; CHECK-NEXT:  [[REG_1:%[0-9]+]] = icmp slt i32 [[ARG_0]], [[ARG_1]]
+; CHECK-NEXT:  [[REG_2:%[0-9]+]] = zext i1 [[REG_1]] to i32
+; CHECK-NEXT:  [[REG_3:%[0-9]+]] = sub nsw i32 0, [[REG_2]]
+; CHECK-NEXT:  [[REG_4:%[0-9]+]] = and i32 [[REG_0]], [[REG_3]]
+; CHECK-NEXT:  [[REG_5:%[0-9]+]] = xor i32 [[ARG_0]], [[REG_4]]
+; CHECK-NEXT:  ret i32 [[REG_5]]

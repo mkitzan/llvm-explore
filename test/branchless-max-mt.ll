@@ -1,9 +1,5 @@
-; ModuleID = '../input/ir/redundant-load/branchless-max-rl.ll'
-source_filename = "c/branchless_max.c"
-target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
-target triple = "x86_64-pc-linux-gnu"
+; RUN: opt -load ../build/libMemoryTransferPass.so -legacy-memory-transfer -S %s  | FileCheck %s
 
-; Function Attrs: noinline nounwind optnone uwtable
 define dso_local i32 @branchless_max(i32 %0, i32 %1) #0 {
   %3 = alloca i32, align 4
   %4 = alloca i32, align 4
@@ -17,11 +13,17 @@ define dso_local i32 @branchless_max(i32 %0, i32 %1) #0 {
   %10 = xor i32 %0, %9
   ret i32 %10
 }
+; Verify all memory transfers are removed
 
-attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "min-legal-vector-width"="0" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
-
-!llvm.module.flags = !{!0}
-!llvm.ident = !{!1}
-
-!0 = !{i32 1, !"wchar_size", i32 4}
-!1 = !{!"clang version 9.0.0-2~ubuntu18.04.2 (tags/RELEASE_900/final)"}
+; CHECK-LABEL: @branchless_max
+; CHECK-NEXT:  [[REG_0:%[0-9]+]] = alloca i32, align 4
+; CHECK-NEXT:  [[REG_1:%[0-9]+]] = alloca i32, align 4
+; CHECK-NEXT:  store i32 [[ARG_0:%[0-9]+]], i32* [[REG_0]], align 4
+; CHECK-NEXT:  store i32 [[ARG_1:%[0-9]+]], i32* [[REG_1]], align 4
+; CHECK-NEXT:  [[REG_2:%[0-9]+]] = xor i32 [[ARG_1]], [[ARG_0]]
+; CHECK-NEXT:  [[REG_3:%[0-9]+]] = icmp slt i32 [[ARG_0]], [[ARG_1]]
+; CHECK-NEXT:  [[REG_4:%[0-9]+]] = zext i1 [[REG_3]] to i32
+; CHECK-NEXT:  [[REG_5:%[0-9]+]] = sub nsw i32 0, [[REG_4]]
+; CHECK-NEXT:  [[REG_6:%[0-9]+]] = and i32 [[REG_2]], [[REG_5]]
+; CHECK-NEXT:  [[REG_7:%[0-9]+]] = xor i32 [[ARG_0]], [[REG_6]]
+; CHECK-NEXT:  ret i32 [[REG_7]]

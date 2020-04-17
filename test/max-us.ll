@@ -17,7 +17,7 @@ define dso_local i32 @max(i32 %0, i32 %1) #0 {
   ret i32 %8
 }
 
-; Verify all memory transfers are removed
+; Verify all unused stores are removed
 
 ; CHECK-LABEL: @max
 ; CHECK-NEXT:  [[REG_0:%[0-9]+]] = alloca i32, align 4
