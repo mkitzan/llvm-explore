@@ -8,12 +8,15 @@
 //		register value which was originally stored.
 //
 // USAGE:
+//		opt -load libRedundantLoadPass.so --legacy-redundant-load-pass ...
 //		opt -load-pass-plugin=libRedundantLoadPass.so -passes=redundant-load-pass ...
 //
 // License: MIT
 //=============================================================================
 
 #include <unordered_map>
+#include "llvm/Pass.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
@@ -69,36 +72,50 @@ namespace
 		return Changed;
 	}
 
-	struct RedundantLoadPass : PassInfoMixin<RedundantLoadPass>
-	{
-		PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
-		{
-			return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
-		}
-	};
-
 }
+
+struct RedundantLoadPass : public PassInfoMixin<RedundantLoadPass>
+{
+	PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
+	{
+		return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
+	}
+};
+
+struct LegacyRedundantLoadPass : public llvm::FunctionPass
+{
+	static char ID;
+
+	LegacyRedundantLoadPass() : FunctionPass{ ID }
+	{}
+	bool runOnFunction(llvm::Function &F) override
+	{
+		return visitor(F);
+	}
+};
 
 //-----------------------------------------------------------------------------
 // New PM Registration
 //-----------------------------------------------------------------------------
 llvm::PassPluginLibraryInfo getRedundantLoadPassPluginInfo()
 {
-	return {LLVM_PLUGIN_API_VERSION, "RedundantLoadPass", LLVM_VERSION_STRING,
-				[](PassBuilder& PB)
+	return {
+		LLVM_PLUGIN_API_VERSION, "RedundantLoadPass", LLVM_VERSION_STRING,
+		[](PassBuilder& PB)
+		{
+			PB.registerPipelineParsingCallback(
+				[](StringRef Name, FunctionPassManager &FPM, ArrayRef<PassBuilder::PipelineElement>) 
 				{
-					PB.registerPipelineParsingCallback(
-						[](StringRef Name, FunctionPassManager &FPM,
-								ArrayRef<PassBuilder::PipelineElement>) 
-						{
-							if (Name == "redundant-load-pass")
-							{
-								FPM.addPass(RedundantLoadPass());
-								return true;
-							}
-							return false;
-						});
-				}};
+					if (Name == "redundant-load-pass")
+					{
+						FPM.addPass(RedundantLoadPass());
+						return true;
+					}
+					return false;
+				}
+			);
+		}
+	};
 }
 
 // This is the core interface for pass plugins. It guarantees that 'opt' will
@@ -109,3 +126,12 @@ llvmGetPassPluginInfo()
 {
 	return getRedundantLoadPassPluginInfo();
 }
+
+//-----------------------------------------------------------------------------
+// Legacy PM Registration
+//-----------------------------------------------------------------------------
+char LegacyRedundantLoadPass::ID = 0;
+
+static RegisterPass<LegacyRedundantLoadPass> X(
+	"legacy-redundant-load-pass", "RedundantLoadPass", true, false
+);

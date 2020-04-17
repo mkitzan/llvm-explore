@@ -8,11 +8,14 @@
 //		value which was originally stored.
 //
 // USAGE:
+//		opt -load libUnusedStorePass.so --legacy-unused-store-pass ...
 //		opt -load-pass-plugin=libUnusedStorePass.so -passes=unused-store-pass ...
 //
 // License: MIT
 //=============================================================================
 
+#include "llvm/Pass.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
@@ -108,36 +111,50 @@ namespace
 		return Changed;
 	}
 
-	struct UnusedStorePass : PassInfoMixin<UnusedStorePass>
-	{
-		PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
-		{
-			return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
-		}
-	};
-
 }
+
+struct UnusedStorePass : public PassInfoMixin<UnusedStorePass>
+{
+	PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
+	{
+		return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
+	}
+};
+
+struct LegacyUnusedStorePass : public llvm::FunctionPass
+{
+	static char ID;
+
+	LegacyUnusedStorePass() : FunctionPass{ ID }
+	{}
+	bool runOnFunction(llvm::Function &F) override
+	{
+		return visitor(F);
+	}
+};
 
 //-----------------------------------------------------------------------------
 // New PM Registration
 //-----------------------------------------------------------------------------
 llvm::PassPluginLibraryInfo getUnusedStorePassPluginInfo()
 {
-	return {LLVM_PLUGIN_API_VERSION, "UnusedStorePass", LLVM_VERSION_STRING,
-				[](PassBuilder& PB)
+	return {
+		LLVM_PLUGIN_API_VERSION, "UnusedStorePass", LLVM_VERSION_STRING,
+		[](PassBuilder& PB)
+		{
+			PB.registerPipelineParsingCallback(
+				[](StringRef Name, FunctionPassManager &FPM, ArrayRef<PassBuilder::PipelineElement>) 
 				{
-					PB.registerPipelineParsingCallback(
-						[](StringRef Name, FunctionPassManager &FPM,
-								ArrayRef<PassBuilder::PipelineElement>) 
-						{
-							if (Name == "unused-store-pass")
-							{
-								FPM.addPass(UnusedStorePass());
-								return true;
-							}
-							return false;
-						});
-				}};
+					if (Name == "unused-store-pass")
+					{
+						FPM.addPass(UnusedStorePass());
+						return true;
+					}
+					return false;
+				}
+			);
+		}
+	};
 }
 
 // This is the core interface for pass plugins. It guarantees that 'opt' will
@@ -148,3 +165,12 @@ llvmGetPassPluginInfo()
 {
 	return getUnusedStorePassPluginInfo();
 }
+
+//-----------------------------------------------------------------------------
+// Legacy PM Registration
+//-----------------------------------------------------------------------------
+char LegacyUnusedStorePass::ID = 0;
+
+static RegisterPass<LegacyUnusedStorePass> X(
+	"legacy-unused-store-pass", "UnusedStorePass", true, false
+);

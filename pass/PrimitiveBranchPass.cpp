@@ -8,11 +8,14 @@
 //		value which was originally stored.
 //
 // USAGE:
+//		opt -load libPrimitiveBranchPass.so --legacy-prim-branch-pass ...
 //		opt -load-pass-plugin=libPrimitiveBranchPass.so -passes=prim-branch-pass ...
 //
 // License: MIT
 //=============================================================================
 
+#include "llvm/Pass.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
@@ -37,36 +40,50 @@ namespace
 		return Changed;
 	}
 
-	struct PrimitiveBranchPass : PassInfoMixin<PrimitiveBranchPass>
-	{
-		PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
-		{
-			return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
-		}
-	};
-
 }
+
+struct PrimitiveBranchPass : public PassInfoMixin<PrimitiveBranchPass>
+{
+	PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
+	{
+		return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
+	}
+};
+
+struct LegacyPrimitiveBranchPass : public llvm::FunctionPass
+{
+	static char ID;
+
+	LegacyPrimitiveBranchPass() : FunctionPass{ ID }
+	{}
+	bool runOnFunction(llvm::Function &F) override
+	{
+		return visitor(F);
+	}
+};
 
 //-----------------------------------------------------------------------------
 // New PM Registration
 //-----------------------------------------------------------------------------
 llvm::PassPluginLibraryInfo getPrimitiveBranchPassPluginInfo()
 {
-	return {LLVM_PLUGIN_API_VERSION, "PrimitiveBranchPass", LLVM_VERSION_STRING,
-				[](PassBuilder& PB)
+	return {
+		LLVM_PLUGIN_API_VERSION, "PrimitiveBranchPass", LLVM_VERSION_STRING,
+		[](PassBuilder& PB)
+		{
+			PB.registerPipelineParsingCallback(
+				[](StringRef Name, FunctionPassManager &FPM, ArrayRef<PassBuilder::PipelineElement>) 
 				{
-					PB.registerPipelineParsingCallback(
-						[](StringRef Name, FunctionPassManager &FPM,
-								ArrayRef<PassBuilder::PipelineElement>) 
-						{
-							if (Name == "prim-branch-pass")
-							{
-								FPM.addPass(PrimitiveBranchPass());
-								return true;
-							}
-							return false;
-						});
-				}};
+					if (Name == "prim-branch-pass")
+					{
+						FPM.addPass(PrimitiveBranchPass());
+						return true;
+					}
+					return false;
+				}
+			);
+		}
+	};
 }
 
 // This is the core interface for pass plugins. It guarantees that 'opt' will
@@ -77,3 +94,12 @@ llvmGetPassPluginInfo()
 {
 	return getPrimitiveBranchPassPluginInfo();
 }
+
+//-----------------------------------------------------------------------------
+// Legacy PM Registration
+//-----------------------------------------------------------------------------
+char LegacyPrimitiveBranchPass::ID = 0;
+
+static RegisterPass<LegacyPrimitiveBranchPass> X(
+	"legacy-prim-branch-pass", "PrimitiveBranchPass", true, false
+);

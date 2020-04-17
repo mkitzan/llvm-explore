@@ -7,12 +7,15 @@
 //		local to a single function where the loading basic block has a single predecessor.
 //
 // USAGE:
+//		opt -load libMemoryTransferPass.so --legacy-memory-transfer-pass ...
 //		opt -load-pass-plugin=libMemoryTranferPass.so -passes=memory-transfer-pass ...
 //
 // License: MIT
 //=============================================================================
 
 #include <unordered_map>
+#include "llvm/Pass.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
@@ -91,36 +94,50 @@ namespace
 		return Changed;
 	}
 
-	struct MemoryTranferPass : PassInfoMixin<MemoryTranferPass>
-	{
-		PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
-		{
-			return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
-		}
-	};
-
 }
+
+struct MemoryTranferPass : public PassInfoMixin<MemoryTranferPass>
+{
+	PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
+	{
+		return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
+	}
+};
+
+struct LegacyMemoryTransferPass : public llvm::FunctionPass
+{
+	static char ID;
+
+	LegacyMemoryTransferPass() : FunctionPass{ ID }
+	{}
+	bool runOnFunction(llvm::Function &F) override
+	{
+		return visitor(F);
+	}
+};
 
 //-----------------------------------------------------------------------------
 // New PM Registration
 //-----------------------------------------------------------------------------
 llvm::PassPluginLibraryInfo getMemoryTranferPassPluginInfo()
 {
-	return {LLVM_PLUGIN_API_VERSION, "MemoryTranferPass", LLVM_VERSION_STRING,
-					[](PassBuilder& PB)
+	return {
+		LLVM_PLUGIN_API_VERSION, "MemoryTranferPass", LLVM_VERSION_STRING,
+		[](PassBuilder& PB)
+		{
+			PB.registerPipelineParsingCallback(
+				[](StringRef Name, FunctionPassManager &FPM, ArrayRef<PassBuilder::PipelineElement>) 
+				{
+					if (Name == "memory-transfer-pass")
 					{
-						PB.registerPipelineParsingCallback(
-							[](StringRef Name, FunctionPassManager &FPM,
-									ArrayRef<PassBuilder::PipelineElement>) 
-							{
-								if (Name == "memory-transfer-pass")
-								{
-									FPM.addPass(MemoryTranferPass());
-									return true;
-								}
-								return false;
-							});
-					}};
+						FPM.addPass(MemoryTranferPass());
+						return true;
+					}
+					return false;
+				}
+			);
+		}
+	};
 }
 
 // This is the core interface for pass plugins. It guarantees that 'opt' will
@@ -131,3 +148,12 @@ llvmGetPassPluginInfo()
 {
 	return getMemoryTranferPassPluginInfo();
 }
+
+//-----------------------------------------------------------------------------
+// Legacy PM Registration
+//-----------------------------------------------------------------------------
+char LegacyMemoryTransferPass::ID = 0;
+
+static RegisterPass<LegacyMemoryTransferPass> X(
+	"legacy-memory-transfer-pass", "MemoryTransferPass", true, false
+);
