@@ -8,8 +8,8 @@
 //		register value which was originally stored.
 //
 // USAGE:
-//		opt -load libRedundantLoadPass.so --legacy-redundant-load-pass ...
-//		opt -load-pass-plugin=libRedundantLoadPass.so -passes=redundant-load-pass ...
+//		opt -load libRedundantLoadPass.so --legacy-redundant-load ...
+//		opt -load-pass-plugin=libRedundantLoadPass.so -passes=redundant-load ...
 //
 // License: MIT
 //=============================================================================
@@ -72,27 +72,27 @@ namespace
 		return Changed;
 	}
 
-}
-
-struct RedundantLoadPass : public PassInfoMixin<RedundantLoadPass>
-{
-	PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
+	struct RedundantLoadPass : public PassInfoMixin<RedundantLoadPass>
 	{
-		return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
-	}
-};
+		PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
+		{
+			return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
+		}
+	};
 
-struct LegacyRedundantLoadPass : public llvm::FunctionPass
-{
-	static char ID;
-
-	LegacyRedundantLoadPass() : FunctionPass{ ID }
-	{}
-	bool runOnFunction(llvm::Function &F) override
+	struct LegacyRedundantLoadPass : public llvm::FunctionPass
 	{
-		return visitor(F);
-	}
-};
+		static char ID;
+
+		LegacyRedundantLoadPass() : FunctionPass{ ID }
+		{}
+		bool runOnFunction(llvm::Function &F) override
+		{
+			return visitor(F);
+		}
+	};
+
+} // anon namespace
 
 //-----------------------------------------------------------------------------
 // New PM Registration
@@ -106,7 +106,7 @@ llvm::PassPluginLibraryInfo getRedundantLoadPassPluginInfo()
 			PB.registerPipelineParsingCallback(
 				[](StringRef Name, FunctionPassManager &FPM, ArrayRef<PassBuilder::PipelineElement>) 
 				{
-					if (Name == "redundant-load-pass")
+					if (Name == "redundant-load")
 					{
 						FPM.addPass(RedundantLoadPass());
 						return true;
@@ -120,7 +120,7 @@ llvm::PassPluginLibraryInfo getRedundantLoadPassPluginInfo()
 
 // This is the core interface for pass plugins. It guarantees that 'opt' will
 // be able to recognize RedundantLoadPass when added to the pass pipeline on the
-// command line, i.e. via '-passes=redundant-load-pass'
+// command line, i.e. via '-passes=redundant-load'
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo
 llvmGetPassPluginInfo()
 {
@@ -133,5 +133,5 @@ llvmGetPassPluginInfo()
 char LegacyRedundantLoadPass::ID = 0;
 
 static RegisterPass<LegacyRedundantLoadPass> X(
-	"legacy-redundant-load-pass", "RedundantLoadPass", true, false
+	"legacy-redundant-load", "RedundantLoadPass", true, false
 );

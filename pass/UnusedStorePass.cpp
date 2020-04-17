@@ -8,8 +8,8 @@
 //		value which was originally stored.
 //
 // USAGE:
-//		opt -load libUnusedStorePass.so --legacy-unused-store-pass ...
-//		opt -load-pass-plugin=libUnusedStorePass.so -passes=unused-store-pass ...
+//		opt -load libUnusedStorePass.so --legacy-unused-store ...
+//		opt -load-pass-plugin=libUnusedStorePass.so -passes=unused-store ...
 //
 // License: MIT
 //=============================================================================
@@ -111,27 +111,27 @@ namespace
 		return Changed;
 	}
 
-}
-
-struct UnusedStorePass : public PassInfoMixin<UnusedStorePass>
-{
-	PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
+	struct UnusedStorePass : public PassInfoMixin<UnusedStorePass>
 	{
-		return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
-	}
-};
+		PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
+		{
+			return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
+		}
+	};
 
-struct LegacyUnusedStorePass : public llvm::FunctionPass
-{
-	static char ID;
-
-	LegacyUnusedStorePass() : FunctionPass{ ID }
-	{}
-	bool runOnFunction(llvm::Function &F) override
+	struct LegacyUnusedStorePass : public llvm::FunctionPass
 	{
-		return visitor(F);
-	}
-};
+		static char ID;
+
+		LegacyUnusedStorePass() : FunctionPass{ ID }
+		{}
+		bool runOnFunction(llvm::Function &F) override
+		{
+			return visitor(F);
+		}
+	};
+
+} // anon namespace
 
 //-----------------------------------------------------------------------------
 // New PM Registration
@@ -145,7 +145,7 @@ llvm::PassPluginLibraryInfo getUnusedStorePassPluginInfo()
 			PB.registerPipelineParsingCallback(
 				[](StringRef Name, FunctionPassManager &FPM, ArrayRef<PassBuilder::PipelineElement>) 
 				{
-					if (Name == "unused-store-pass")
+					if (Name == "unused-store")
 					{
 						FPM.addPass(UnusedStorePass());
 						return true;
@@ -159,7 +159,7 @@ llvm::PassPluginLibraryInfo getUnusedStorePassPluginInfo()
 
 // This is the core interface for pass plugins. It guarantees that 'opt' will
 // be able to recognize UnusedStorePass when added to the pass pipeline on the
-// command line, i.e. via '-passes=unused-store-pass'
+// command line, i.e. via '-passes=unused-store'
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo
 llvmGetPassPluginInfo()
 {
@@ -172,5 +172,5 @@ llvmGetPassPluginInfo()
 char LegacyUnusedStorePass::ID = 0;
 
 static RegisterPass<LegacyUnusedStorePass> X(
-	"legacy-unused-store-pass", "UnusedStorePass", true, false
+	"legacy-unused-store", "UnusedStorePass", true, false
 );

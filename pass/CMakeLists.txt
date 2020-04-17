@@ -8,7 +8,7 @@ set(LLVM_INSTALL_DIR "" CACHE PATH "LLVM installation directory")
 
 list(APPEND CMAKE_PREFIX_PATH "${LLVM_INSTALL_DIR}/lib/cmake/llvm/")
 
-find_package(LLVM 9.0.0 REQUIRED CONFIG)
+find_package(LLVM 11.0.0 REQUIRED CONFIG)
 
 include_directories(${LLVM_INCLUDE_DIRS})
 

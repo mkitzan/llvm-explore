@@ -8,8 +8,8 @@
 //		value which was originally stored.
 //
 // USAGE:
-//		opt -load libPrimitiveBranchPass.so --legacy-prim-branch-pass ...
-//		opt -load-pass-plugin=libPrimitiveBranchPass.so -passes=prim-branch-pass ...
+//		opt -load libPrimitiveBranchPass.so --legacy-prim-branch ...
+//		opt -load-pass-plugin=libPrimitiveBranchPass.so -passes=prim-branch ...
 //
 // License: MIT
 //=============================================================================
@@ -40,27 +40,27 @@ namespace
 		return Changed;
 	}
 
-}
-
-struct PrimitiveBranchPass : public PassInfoMixin<PrimitiveBranchPass>
-{
-	PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
+	struct PrimitiveBranchPass : public PassInfoMixin<PrimitiveBranchPass>
 	{
-		return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
-	}
-};
+		PreservedAnalyses run(Function& F, FunctionAnalysisManager&)
+		{
+			return (visitor(F) ? PreservedAnalyses::none() : PreservedAnalyses::all());
+		}
+	};
 
-struct LegacyPrimitiveBranchPass : public llvm::FunctionPass
-{
-	static char ID;
-
-	LegacyPrimitiveBranchPass() : FunctionPass{ ID }
-	{}
-	bool runOnFunction(llvm::Function &F) override
+	struct LegacyPrimitiveBranchPass : public llvm::FunctionPass
 	{
-		return visitor(F);
-	}
-};
+		static char ID;
+
+		LegacyPrimitiveBranchPass() : FunctionPass{ ID }
+		{}
+		bool runOnFunction(llvm::Function &F) override
+		{
+			return visitor(F);
+		}
+	};
+
+} // anon namespace
 
 //-----------------------------------------------------------------------------
 // New PM Registration
@@ -74,7 +74,7 @@ llvm::PassPluginLibraryInfo getPrimitiveBranchPassPluginInfo()
 			PB.registerPipelineParsingCallback(
 				[](StringRef Name, FunctionPassManager &FPM, ArrayRef<PassBuilder::PipelineElement>) 
 				{
-					if (Name == "prim-branch-pass")
+					if (Name == "prim-branch")
 					{
 						FPM.addPass(PrimitiveBranchPass());
 						return true;
@@ -88,7 +88,7 @@ llvm::PassPluginLibraryInfo getPrimitiveBranchPassPluginInfo()
 
 // This is the core interface for pass plugins. It guarantees that 'opt' will
 // be able to recognize PrimitiveBranchPass when added to the pass pipeline on the
-// command line, i.e. via '-passes=prim-branch-pass'
+// command line, i.e. via '-passes=prim-branch'
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo
 llvmGetPassPluginInfo()
 {
@@ -101,5 +101,5 @@ llvmGetPassPluginInfo()
 char LegacyPrimitiveBranchPass::ID = 0;
 
 static RegisterPass<LegacyPrimitiveBranchPass> X(
-	"legacy-prim-branch-pass", "PrimitiveBranchPass", true, false
+	"legacy-prim-branch", "PrimitiveBranchPass", true, false
 );
