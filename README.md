@@ -90,11 +90,43 @@ After the `MemoryTransferPass` is run the all previous instances of the target p
 
 ## Primitive Branch Pass
 
-Implemented README todo
+In the `max` and `min` IR functions, there exists a pattern where a branch is used simply to store a value in memory which the memory is loaded in a trailing basic block. This pattern essentially simulates a `select` instruction. The pattern looks like the following in IR:
+
+```
+  store i32 %0, i32* %3, align 4
+  ...
+  br i1 %5, label %6, label %7
+
+6:
+  store i32 %1, i32* %3, align 4
+  br label %7
+
+7:
+  %8 = load i32, i32* %3, align 4
+```
+
+Value `%0` is stored by default in the memory location `%3`. If the predicate value `%5` is `true`, then `%3` is updated with the value of `%1`. The branching paths merge on a basic block which reads memory location `%3`. This behavior is the exactly what the `select` IR instruction performs.
+
+In order to match instances of this pattern the following criteria must be met:
+
+-	The root basic block must have a conditional branch with successors `sX` and `sY`
+-	The root basic block must store a default value into a memory location `mem`
+-	Branch successor, `sX` must only `store` to `mem` before branching to `sY`
+-	`sY` must not `store` into `mem` before loading `mem`
+
+If the criteria is met, the two value defs must be determined and a `select` instruction created with them and the branch's condition value. The primitive branch basic block, `sX`, must be erased and the trailing basic block, `sY`, be merged into the root basic block. The original branch and `load` which existed must be removed, and the `load`'s users replaced to use the new `select` instruction.
+
+After the `PrimitiveBranchPass` is run the all previous instances of the target pattern will be replaced to look like the following:
+
+```
+  ...
+  select i1 %5, i32 %1, i32 %0
+  ...
+```
 
 ## Unused Store Pass
 
-After having run the previous two passes, there are a number of `store` and `alloca` instructions to which no further users exist. The pattern looks like the following in IR:
+After having run the previous three passes, there are a number of `store` and `alloca` instructions to which no further users exist. The pattern looks like the following in IR:
 
 ```
 %4 = alloca i32, align 4
