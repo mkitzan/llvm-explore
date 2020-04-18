@@ -67,7 +67,7 @@ namespace
 			for (auto* PtrUser : Inst.getOperand(1)->users())
 			{
 				// If the store's address is not always stored at, then the store inst
-				// is not redundant. 
+				//	is not redundant. 
 				if (cast<Instruction>(PtrUser)->getOpcode() != Instruction::Store)
 				{
 					Redundant = false;

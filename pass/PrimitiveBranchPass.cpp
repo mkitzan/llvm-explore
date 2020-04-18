@@ -28,27 +28,27 @@ using namespace llvm;
 //-----------------------------------------------------------------------------
 namespace
 {
-	// Simple HOF to map a function on the insts of a basic block before erasing the block
+	// Simple HOF to map a function on the insts of a basic block before erasing the block.
 	void mapEraseBasicBlock(BasicBlock& Pred, BasicBlock& BB, std::function<void(Instruction&)> Fn)
 	{
 		BB.removePredecessor(&Pred);
 
 		while (!BB.empty())
 		{
-			//	Fn MUST remove or erase the inst
+			// Fn MUST remove or erase the inst.
 			Fn(BB.back());
 		}
 
 		BB.eraseFromParent();
 	}
 
-	// Convert the primitive branch into a select inst and merge trailing basic block into predecessor
+	// Convert the primitive branch into a select inst and merge trailing basic block into predecessor.
 	void selectConversion(BranchInst* BI, StoreInst* SI, LoadInst* LI, Value* StoreVal)
 	{
-		// Construct the resulting select inst
+		// Construct the resulting select inst.
 		SelectInst* Select{ SelectInst::Create(BI->getCondition(), SI->getValueOperand(), StoreVal) };
 
-		// Remove primitive branch basic block and erase all its instructions
+		// Remove primitive branch basic block and erase all its instructions.
 		mapEraseBasicBlock(*BI->getParent(), *SI->getParent(),
 			[](Instruction& Inst)
 			{	
@@ -56,11 +56,11 @@ namespace
 				Inst.eraseFromParent();
 			});
 
-		// Bring in the select inst into the basic blocks
+		// Bring in the select inst into the basic blocks.
 		LI->replaceAllUsesWith(Select);
 		Select->insertBefore(BI);
 
-		// Merge the trailing basic block into its predecessor
+		// Merge the trailing basic block into its predecessor.
 		mapEraseBasicBlock(*BI->getParent(), *LI->getParent(),
 			[=](Instruction& Inst)
 			{
@@ -68,14 +68,14 @@ namespace
 				Inst.insertAfter(Select);
 			});
 
-		// Erase remaining legacy insts
+		// Erase remaining legacy insts.
 		LI->eraseFromParent();
 		BI->eraseFromParent();
 	}
 
 	bool primitiveSuccessor(const BranchInst* BI, BasicBlock* Prim, BasicBlock* Trail, LoadInst** LI)
 	{
-		// Basic qualities a primitive branch will have
+		// Basic qualities a primitive branch will have.
 		StoreInst* SI{ dyn_cast<StoreInst>(Prim->getFirstNonPHI()) };
 		bool SizeCheck{ Prim->size() == 2 };
 		bool TrailCheck{ Prim->getSingleSuccessor() == Trail };
@@ -86,7 +86,7 @@ namespace
 			Value* PtrOp{ SI->getPointerOperand() };
 
 			// Assert that the trailing basic block does not store to the store pointer,
-			//	and that a load to the store pointer occurs
+			//	and that a load to the store pointer occurs.
 			for (auto& Inst : *Trail)
 			{
 				if (Inst.getOpcode() == Instruction::Store && Inst.getOperand(1) == PtrOp)
@@ -104,8 +104,8 @@ namespace
 		return false;
 	}
 
-	// Gets most recently stored value to PtrOp within a basic block
-	//	Return true if there is a store
+	// Gets most recently stored value to PtrOp within a basic block.
+	//	Return true if there is a store.
 	bool storedValue(BasicBlock const& BB, Value* PtrOp, Value** StoreVal)
 	{
 		for (auto const& Inst : BB)
@@ -115,7 +115,7 @@ namespace
 				continue;
 			}
 
-			// Capture last stored value to PtrOp
+			// Capture last stored value to PtrOp.
 			if (Inst.getOperand(1) == PtrOp)
 			{
 				*StoreVal = Inst.getOperand(0);
@@ -144,7 +144,7 @@ namespace
 			StoreInst* SI{};
 			Value* StoreVal{};
 
-			// Test whether either combination of predecessors matches a primitive branch
+			// Test whether either combination of predecessors matches a primitive branch.
 			if (primitiveSuccessor(BI, True, False, &LI))
 			{
 				SI = dyn_cast<StoreInst>(True->getFirstNonPHI());
@@ -154,7 +154,7 @@ namespace
 				SI = dyn_cast<StoreInst>(False->getFirstNonPHI());
 			}
 
-			// If an actual primitive branch was matched, convert it to a select inst
+			// If an actual primitive branch was matched, convert it to a select inst.
 			if (LI && SI && storedValue(BB, SI->getPointerOperand(), &StoreVal))
 			{
 				selectConversion(BI, SI, LI, StoreVal);

@@ -46,8 +46,8 @@ namespace
 				auto Pair{ Pointers.find(Inst.getOperand(0)) };
 
 				// Replace every load inst whose data was set as a store inst
-				// within this basic block with the SSA register value of the store.
-				// Prune the redundant load inst from the basic block.
+				//	within this basic block with the SSA register value of the store.
+				//	Prune the redundant load inst from the basic block.
 				if (Pair != Pointers.end())
 				{
 					Inst.replaceAllUsesWith(Pair->second);
