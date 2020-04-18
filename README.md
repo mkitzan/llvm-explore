@@ -2,16 +2,18 @@
 
 **Fisher Price Baby's First: LLVM Middle-end Optimization Pipeline**
 
-The boilerplate template for the passes and cmake file were taken from [llvm-tutor](https://github.com/banach-space/llvm-tutor).
-In addition to diving into the [LLVM Docs](http://llvm.org/doxygen/), I referenced heavily two talks from the 2019 LLVM Developer's Meeting: [Getting Started with LLVM](https://www.youtube.com/watch?v=3QQuhL-dSys) and [Writing and LLVM Pass 101](https://www.youtube.com/watch?v=ar7cJl2aBuU).
+This repo contains work and notes created while studying LLVM compiler infrastructure in preparation for compiler engineer job and onsite interview.
 
-## Overview
+The boilerplate templates for the passes, cmake files, and lit config files were taken from [llvm-tutor](https://github.com/banach-space/llvm-tutor). In addition to diving into the [LLVM Docs](http://llvm.org/doxygen/), I referenced heavily two talks from the 2019 LLVM Developer's Meeting: [Getting Started with LLVM](https://www.youtube.com/watch?v=3QQuhL-dSys) and [Writing and LLVM Pass 101](https://www.youtube.com/watch?v=ar7cJl2aBuU).
 
-This is a mini-pipeline to optimize three simple C functions:
+## Pipeline Overview
 
--	[`int min(int value, int min);`](https://github.com/mkitzan/llvm-explore/blob/master/test/clamp.c#L2)
--	[`int max(int value, int max);`](https://github.com/mkitzan/llvm-explore/blob/master/test/clamp.c#L12)
--	[`int clamp(int value, int m, int M);`](https://github.com/mkitzan/llvm-explore/blob/master/test/clamp.c#L22)
+This is a mini-pipeline to optimize four simple C functions:
+
+-	[`int min(int value, int min);`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/min.c)
+-	[`int max(int value, int max);`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/max.c)
+-	[`int branchless_min(int value, int min);`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/branchless_min.c)
+-	[`int branchless_max(int value, int max);`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/branchless_max.c)
 
 The un-optimized LLVM IR for these functions were riddled with unnecessary memory accesses.
 The goal of the pipeline is to eliminate all the memory accesses and collapse primitive conditional branches into `select` IR instructions. The final output of the pipeline should be very close to the emitted IR when the functions are compiled with an optimization flag greater than 0.
@@ -22,9 +24,9 @@ The four passes are the following and are meant to execute in the following orde
 -	[`RedundantLoadPass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/RedundantLoadPass.cpp)
 -	[`MemoryTransferPass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/MemoryTransferPass.cpp)
 -	[`UnusedStorePass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/UnusedStorePass.cpp)
--	`PrimitiveBranchPass` (not yet implemented)
+-	[`PrimitiveBranchPass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/PrimitiveBranchPass.cpp) (not yet implemented)
 
-`lit` tests for each pass are planned to be implemented (later today...).
+A full `lit` test suite exists for the passes in the `test` subdirectory. The test suite must be run from the `test` subdirectory created in the cmake build directory.
 
 ## Redundant Load Pass
 

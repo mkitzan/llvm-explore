@@ -1,4 +1,3 @@
-
 int max(int value, int max)
 {
 	if (value < max)
