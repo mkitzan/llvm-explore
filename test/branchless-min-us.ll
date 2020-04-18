@@ -1,17 +1,13 @@
 ; RUN: opt -load ../pass/libUnusedStorePass.so -legacy-unused-store -S %s  | FileCheck %s
 
 define dso_local i32 @branchless_min(i32 %0, i32 %1) #0 {
-  %3 = alloca i32, align 4
-  %4 = alloca i32, align 4
-  store i32 %0, i32* %3, align 4
-  store i32 %1, i32* %4, align 4
-  %5 = xor i32 %1, %0
-  %6 = icmp sgt i32 %0, %1
-  %7 = zext i1 %6 to i32
-  %8 = sub nsw i32 0, %7
-  %9 = and i32 %5, %8
-  %10 = xor i32 %0, %9
-  ret i32 %10
+  %3 = xor i32 %1, %0
+  %4 = icmp sgt i32 %0, %1
+  %5 = zext i1 %4 to i32
+  %6 = sub nsw i32 0, %5
+  %7 = and i32 %3, %6
+  %8 = xor i32 %0, %7
+  ret i32 %8
 }
 
 ; Verify all unused stores are removed

@@ -22,6 +22,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
+using ValuePtrMap = std::unordered_map<Value*, Value*>;
 
 //-----------------------------------------------------------------------------
 // RedundantLoadPass implementation
@@ -29,10 +30,9 @@ using namespace llvm;
 namespace
 {
 
-	bool elideRedundantLoads(BasicBlock& BB)
+	bool elideRedundantLoads(BasicBlock& BB, ValuePtrMap& Pointers)
 	{
 		bool Changed{};
-		std::unordered_map<Value*, Value*> Pointers{};
 
 		for (auto& Inst : make_early_inc_range(BB))
 		{
@@ -63,10 +63,12 @@ namespace
 	bool visitor(Function& F)
 	{
 		bool Changed{};
+		std::unordered_map<Value*, Value*> Pointers{};
 
 		for (auto& BB : F)
 		{
-			Changed |= elideRedundantLoads(BB);
+			Pointers.clear();
+			Changed |= elideRedundantLoads(BB, Pointers);
 		}
 
 		return Changed;

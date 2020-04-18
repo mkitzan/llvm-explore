@@ -1,4 +1,4 @@
-; ModuleID = '../input/ir/redundant-load/branchless-min-rl.ll'
+; ModuleID = '../input/ir/memory-transfer/branchless-min.ll'
 source_filename = "c/branchless_min.c"
 target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-pc-linux-gnu"

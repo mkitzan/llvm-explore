@@ -1,15 +1,15 @@
-; ModuleID = '../input/ir/redundant-load/min-rl.ll'
-source_filename = "c/min.c"
+; ModuleID = '../input/ir/memory-transfer/max.ll'
+source_filename = "c/max.c"
 target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-pc-linux-gnu"
 
 ; Function Attrs: noinline nounwind optnone uwtable
-define dso_local i32 @min(i32 %0, i32 %1) #0 {
+define dso_local i32 @max(i32 %0, i32 %1) #0 {
   %3 = alloca i32, align 4
   %4 = alloca i32, align 4
   store i32 %0, i32* %3, align 4
   store i32 %1, i32* %4, align 4
-  %5 = icmp sgt i32 %0, %1
+  %5 = icmp slt i32 %0, %1
   br i1 %5, label %6, label %7
 
 6:                                                ; preds = %2

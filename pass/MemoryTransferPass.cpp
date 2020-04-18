@@ -21,13 +21,14 @@
 #include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
+using ValuePtrMap = std::unordered_map<Value*, Value*>;
 
 //-----------------------------------------------------------------------------
 // MemoryTranferPass implementation
 //-----------------------------------------------------------------------------
 namespace
 {
-	bool elideRedundantLoads(BasicBlock* BB, std::unordered_map<Value*, Value*> const& Pointers)
+	bool elideRedundantLoads(BasicBlock* BB, ValuePtrMap const& Pointers)
 	{
 		bool Changed{};
 
@@ -52,10 +53,9 @@ namespace
 		return Changed;
 	}
 
-	bool elideMemoryTransfers(BasicBlock& BB)
+	bool elideMemoryTransfers(BasicBlock& BB, ValuePtrMap& Pointers)
 	{
 		bool Changed{};
-		std::unordered_map<Value*, Value*> Pointers{};
 
 		for (auto& Inst : BB)
 		{
@@ -85,10 +85,12 @@ namespace
 	bool visitor(Function& F)
 	{
 		bool Changed{};
+		ValuePtrMap Pointers{};
 
 		for (auto& BB : F)
 		{
-			Changed |= elideMemoryTransfers(BB);
+			Pointers.clear();
+			Changed |= elideMemoryTransfers(BB, Pointers);
 		}
 
 		return Changed;

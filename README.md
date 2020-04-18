@@ -10,10 +10,10 @@ The boilerplate templates for the passes, cmake files, and lit config files were
 
 This is a mini-pipeline to optimize four simple C functions:
 
--	[`int min(int value, int min);`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/min.c)
--	[`int max(int value, int max);`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/max.c)
--	[`int branchless_min(int value, int min);`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/branchless_min.c)
--	[`int branchless_max(int value, int max);`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/branchless_max.c)
+-	[`int min(int value, int min)`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/min.c)
+-	[`int max(int value, int max)`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/max.c)
+-	[`int branchless_min(int value, int min)`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/branchless_min.c)
+-	[`int branchless_max(int value, int max)`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/branchless_max.c)
 
 The un-optimized LLVM IR for these functions were riddled with unnecessary memory accesses.
 The goal of the pipeline is to eliminate all the memory accesses and collapse primitive conditional branches into `select` IR instructions. The final output of the pipeline should be very close to the emitted IR when the functions are compiled with an optimization flag greater than 0.
@@ -23,8 +23,8 @@ The four passes are the following and are meant to execute in the following orde
 
 -	[`RedundantLoadPass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/RedundantLoadPass.cpp)
 -	[`MemoryTransferPass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/MemoryTransferPass.cpp)
+-	[`PrimitiveBranchPass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/PrimitiveBranchPass.cpp)
 -	[`UnusedStorePass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/UnusedStorePass.cpp)
--	[`PrimitiveBranchPass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/PrimitiveBranchPass.cpp) (not yet implemented)
 
 A full `lit` test suite exists for the passes in the `test` subdirectory. The test suite must be run from the `test` subdirectory created in the cmake build directory.
 
@@ -88,6 +88,10 @@ After the `MemoryTransferPass` is run the all previous instances of the target p
   store i32 %1, i32* %3, align 4
 ```
 
+## Primitive Branch Pass
+
+Implemented README todo
+
 ## Unused Store Pass
 
 After having run the previous two passes, there are a number of `store` and `alloca` instructions to which no further users exist. The pattern looks like the following in IR:
@@ -103,7 +107,3 @@ A `ptr` defined by an `alloca` instruction local to an IR function where only `s
 `UnusedStorePass` implements this optimization by identifying every `store` to a `ptr` with no other users besides `store` instructions. The identified `store`s are pruned from their basic block parents. This pruning will by matter of course, deplete the users of the `ptr`'s definition (an `alloca` instruction). If a `store` was pruned, the basic block is then pruned of `alloca` instructions with no users.
 
 After the `UnusedStorePass` is run the all previous instances of the target pattern will be eliminated.
-
-## Primitive Branch Pass
-
-Gotta actually write this one, but it will try to pattern match instances of branching with the sole purpose of updating memory where the terminating branch loads the stored value for use.
