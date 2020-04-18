@@ -1,4 +1,4 @@
-; RUN: opt -load ../build/libRedundantLoadPass.so -legacy-redundant-load -S %s  | FileCheck %s
+; RUN: opt -load ../pass/libRedundantLoadPass.so -legacy-redundant-load -S %s  | FileCheck %s
 
 define dso_local i32 @max(i32, i32) #0 {
   %3 = alloca i32, align 4

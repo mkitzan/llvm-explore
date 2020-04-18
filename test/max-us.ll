@@ -1,4 +1,4 @@
-; RUN: opt -load ../build/libUnusedStorePass.so -legacy-unused-store -S %s  | FileCheck %s
+; RUN: opt -load ../pass/libUnusedStorePass.so -legacy-unused-store -S %s  | FileCheck %s
 
 define dso_local i32 @max(i32 %0, i32 %1) #0 {
   %3 = alloca i32, align 4

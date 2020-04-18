@@ -1,3 +1,4 @@
+; RUN: opt -load ../pass/libPrimitiveBranchPass.so -legacy-primitive-branch -S %s  | FileCheck %s
 
 define dso_local i32 @max(i32 %0, i32 %1) #0 {
   %3 = alloca i32, align 4
@@ -13,3 +14,7 @@ define dso_local i32 @max(i32 %0, i32 %1) #0 {
   %7 = load i32, i32* %3, align 4
   ret i32 %7
 }
+
+; Verify all primitive branches are removed
+
+; CHECK-LABEL: @max

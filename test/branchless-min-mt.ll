@@ -1,4 +1,4 @@
-; RUN: opt -load ../build/libMemoryTransferPass.so -legacy-memory-transfer -S %s  | FileCheck %s
+; RUN: opt -load ../pass/libMemoryTransferPass.so -legacy-memory-transfer -S %s  | FileCheck %s
 
 define dso_local i32 @branchless_min(i32 %0, i32 %1) #0 {
   %3 = alloca i32, align 4
