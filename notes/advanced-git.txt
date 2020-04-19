@@ -1,0 +1,46 @@
+Advanced Git
+
+git checkout can work at commit and file level to set head to previous commit or pull an old file version into working directory
+git reset can work at commit and file level to change head or file to previous commit or version
+git revert works at commit level to publicly undo previous commit(s) by making a new commit inverting the changes
+
+Stash
+-	Store staged changes into a temporary cache
+-	git stash
+	=	Stash staged changes
+-	git stash list
+	=	Print a list of stashes
+-	git stash apply [i]
+	=	Retrieve i-th stashed changes
+-	git stash drop [i]
+	=	Delete stash i
+-	git stash clear
+	=	Drop all stashes
+-	git stash branch <branch-name>
+	=	Stash local
+
+Reset
+-	Roll back commits
+-	git reset --soft HEAD~n
+	=	Roll back n commits, changes remain on branch
+-	git reset --hard HEAD~n
+	=	Roll back n commits, changes deleted from branch
+
+Squash
+-	Combine a number of commits together into a single commit
+-	git merge --squash
+	=	Squashes all commits ahead of trunk to one commit then merging
+-	git rebase -i
+	=	Allows user to, among other things, to squash commits in an text editor
+
+Rebase
+-	Allow user to modify history of a branch (don't use on public branches)
+
+GC
+-	Garbage collection of unreachable refs
+
+Subtree
+-	Nest a git repo inside another git repo
+
+Cherry-pick
+-	Select individual commit to bring onto HEAD

@@ -26,8 +26,6 @@ The four passes are the following and are meant to execute in the following orde
 -	[`PrimitiveBranchPass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/PrimitiveBranchPass.cpp)
 -	[`UnusedStorePass`](https://github.com/mkitzan/llvm-explore/blob/master/pass/UnusedStorePass.cpp)
 
-After executing the pipeline, the IR output of `min` and `max` matches the IR output of Clang 9 with optimization enabled. However, `branchless_min` and `branchless_max` do not match the optimized output of Clang 9. The branchless functions use "clever" tricks to eliminate branching at the C level which obfuscates the actual behavior of the code. This obfuscation makes it harder to pattern match and optimize as a result.
-
 A full `lit` test suite exists for the passes in the `test` subdirectory. The test suite must be run from the `test` subdirectory created in the cmake build directory.
 
 ## Redundant Load Pass
@@ -177,3 +175,9 @@ define dso_local i32 @min(i32 %0, i32 %1) #0 {
   ret i32 %4
 }
 ```
+
+After executing the pipeline, the IR output of `min` and `max` matches the IR output of Clang 9 with optimization enabled. However, `branchless_min` and `branchless_max` do not match the optimized output of Clang 9. The branchless functions use "clever" tricks to eliminate branching at the C level which obfuscates the actual behavior of the code. This obfuscation makes it harder to pattern match and optimize as a result.
+
+## Future Work
+
+These test inputs for the pipeline contain no loops, so no loop optimization techniques were explored. Exploring loop optimization techniques on inputs with different kinds of loops would a good next step.
