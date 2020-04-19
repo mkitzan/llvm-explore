@@ -68,7 +68,7 @@ namespace
 				Inst.insertAfter(Select);
 			});
 
-		// Erase remaining legacy insts.
+		// Erase remaining insts.
 		LI->eraseFromParent();
 		BI->eraseFromParent();
 	}
@@ -110,16 +110,13 @@ namespace
 	{
 		for (auto const& Inst : BB)
 		{
-			if (Inst.getOpcode() != Instruction::Store)
+			if (Inst.getOpcode() != Instruction::Store || Inst.getOperand(1) != PtrOp)
 			{
 				continue;
 			}
 
 			// Capture last stored value to PtrOp.
-			if (Inst.getOperand(1) == PtrOp)
-			{
-				*StoreVal = Inst.getOperand(0);
-			}
+			*StoreVal = Inst.getOperand(0);
 		}
 
 		return StoreVal;

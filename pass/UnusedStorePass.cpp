@@ -34,18 +34,14 @@ namespace
 
 		for (auto& Inst : make_early_inc_range(BB))
 		{
-			if (Inst.getOpcode() != Instruction::Alloca)
+			if (Inst.getOpcode() != Instruction::Alloca || !Inst.user_empty())
 			{				
 				continue;
 			}
 
 			// Prune wasted alloca inst.
-			if (Inst.user_empty())
-			{
-				Inst.eraseFromParent();
-
-				Changed = true;
-			}
+			Inst.eraseFromParent();
+			Changed = true;
 		}
 
 		return Changed;
