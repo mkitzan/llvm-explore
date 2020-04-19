@@ -119,7 +119,7 @@ namespace
 			*StoreVal = Inst.getOperand(0);
 		}
 
-		return StoreVal;
+		return *StoreVal;
 	}
 
 	bool visitor(Function& F)
