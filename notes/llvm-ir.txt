@@ -1,0 +1,45 @@
+LLVM IR: Intermediate Representation
+https://llvm.org/docs/LangRef.html
+
+Basics
+-	SSA based representation (single static assignment)
+-	Three different froms of IR
+	=	In-memory, when IR is represented as data structures during pass and such
+	=	On-disk bitcode, a representation suitable for loading into a JIT compiler
+	=	Human readable, for visual inspection and FileCheck
+-	Aims to be a "universal IR" such that IR optimizations can map to the target
+
+Identifers
+-	Two basic type global and local
+-	Global identifiers begin with `@` and cover functions and global variables
+-	Local identifiers begin with `%` and cover registers names and types
+-	Three identifier formats: named, unnamed, constants
+	=	Named identifiers are represented as a string of characters
+	=	Unnamed identifiers are represented as a unsigned numeric values
+	=	Constants have their own syntax covered later
+-	Prefixing values is important to prevent name collisions with keywords
+
+Module Structure
+-	LLVM programs are composed of modules
+-	Each module corresponds to a translation unit
+-	Modules are combined together using LLVM linker
+-	A module is generally list of global values
+	=	The global values are represented by a pointer to a memory location and have a linkage type
+
+Linkage Types
+-	Specifiers on global variables informing the linker on how to treat the variable
+-	`private`, means the value is only accessible within the current module
+	=	Private symbols do not appear in the resulting object file's symbol table
+-	`internal`, similar to `private` but value appears as a local symbol in the object file
+	=	Corresponds to `static` C keyword
+-	`available_externally`, the value does not appear in the object file
+	=	Equivalent to an `extern` declaration
+	=	Allows for inlining and other optimizations
+-	`linkonce`, values are merged with other globals of the same name during linking
+-	`weak`, similar to `linkonce` but unreferenced globals with `weak` are not discarded
+-	`common`, similar to `weak` but are used for global scope declarations
+	=	`common` values are default 0 initialized and may not be marked constant
+-	`appending`, only apply to pointer to array types where two arrays are appended together
+-	`extern_weak`, the symbol is `weak` until linked, and if not linked it becomes null
+-	`linkonce_odr` and `weak_odr`, indicate a symbol may only be merged with equivalent symbols
+-	`external`, the global value is externally linkable to other modules
