@@ -95,4 +95,49 @@ Struct Types
 -	`literal`, structs have the types of members explicitly stated
 -	`identified`, struct type have a name for the struct type
 
+Global Variables
+-	Define/allocate regions of memory at compile time
+	=	All global variable definitions must be initialized
+	=	Global variables may be declared without an initializer
+-	Globals may be `constant` (allowing optimization), but must be initialized
+-	Globals may be marked `unnamed_addr` indicating the value is important not the address
+-	Globals may be marked `local_unnamed_addr` the address is not significant in the module
+-	Global initializers are assumed to not be modified, this can be discard with `externally_initialized`
+-	Alignment of globals must be a power of 2 and can be specified (0 by default)
 
+Functions
+-	Function definitions begin with `define` keyword followed by optional specifiers
+-	Function declarations begin with the `declare` keyword followed by optional specifiers
+-	Functions consist of basic blocks forming the CFG of the function
+	=	First basic block to function may not have predecessor blocks and thus no PHI nodes
+
+Aliases
+-	Do not create new data
+	=	Aliases are new symbols for existing positions
+
+IFuncs
+-	Do not create new data
+	=	IFuncs are new symbols resolved by a dynamic linker at runtime
+
+Parameter Attributes
+-	Function return type and parameters may have an associated parameter attribute
+-	`zeroext`, zero extend the param/return
+-	`signext`, sign extend the param/return
+-	`inreg`, treat param/return in a target-dependant way
+-	`byval`, indicates pointer param should be passed by value
+-	`inalloca`, allows caller to take address of outgoing stack arg
+	=	`inalloca` arg must be a pointer to stack mem created through an `alloca` inst
+	=	Argument will be passed by memory
+-	`sret`, indicates pointer param is the address of struct return value
+-	`align`, indicates the pointer alignment which may be assumed
+-	`noalias`, indicates no overlap in pointers' data
+-	`nocapture`, callee can not copy the pointer such that the copy outlives the function
+-	`nofree`, callee can not free the pointer
+-	`nest`, indicates pointer may be excised
+-	`returned`, indicates function returns the argument as its return value
+-	`nonull`, indicates parameter or return pointer is not null
+-	`dereferenceable`, indicates param/return may be dereferenced
+-	`dereferenceable_or_null`, indicates param/return is not both non-null and non-dereferenceable
+-	`swiftself`, indicates parameter is the object context parameter
+-	`swifterror`, used for optimizing Swift error handling
+-	`immarg`, indicates parameter is an immediate value
