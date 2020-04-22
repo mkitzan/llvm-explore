@@ -43,3 +43,56 @@ Linkage Types
 -	`extern_weak`, the symbol is `weak` until linked, and if not linked it becomes null
 -	`linkonce_odr` and `weak_odr`, indicate a symbol may only be merged with equivalent symbols
 -	`external`, the global value is externally linkable to other modules
+
+Calling Conventions
+-	`ccc`, C calling convention (default)
+	=	Supports varargs, tolerates some differences in prototype and definition
+-	`fastcc`, attempts to make the call as fast as possible
+	=	Allows non conformance to ABI specification
+	=	Prototype must match definition, does not support varargs
+-	`coldcc`, attempts to make code in caller as efficient as possible
+	=	Operates under the assumption that the calls are infrequent
+	=	Inliner does not consider `coldcc` calls for inlining
+-	`cc 10`, implemented specifically for Glasgow Haskell Compiler
+-	`cc 11`, implemented specifically for High-Performance Erlang Compiler
+-	`webkit_jscc`, WebKit's JavaScript calling convention
+-	`anyregcc`, forces call arguments in to registers but allows them to be dynamically allocated
+-	`preserve_mostcc`, behaves like `ccc` but uses a different set of registers
+	=	For functions which have a "hot" and "cold" path to the function call
+-	`preserve_allcc`, behaves like `ccc` but uses a different set of registers
+	=	For functions that don't need to call other functions
+-	`cxx_fast_tlscc`, aims to minimize caller overhead by preserving as many registers as possible
+-	`swiftcc`, Swift language calling convention
+-	`tailcc`, enables tail callable convention
+	=	ensures tail calls will always be tail call optimized
+-	`cfguard_checkcc`, Windows Control Flow Guard
+
+Visibility Styles
+-	All global variables and functions have one visibility style
+-	`default`, declaration is visible in the ELF object file
+-	`hidden`, indicates the symbol will not be placed into the dynamic symbol table
+-	`protected`, in ELF, the symbol will be placed in the dynamic symbol table
+	=	Local references will bind to the local symbol
+
+DLL Storage Classes
+-	`dllimport`, compiler to reference symbol via a global pointer to a pointer exported by a DLL
+-	`dllexport`, copmiler to provide a global pointer to a pointer in a DLL
+
+Thread Local Storage Models
+-	`localdynammic`, variables used exclusively in a shared library
+-	`initialexec`, variables in modules loaded dynamically
+-	`localexec`, variables defined and only used within an executable
+-	Model corresponds to ELF thread local storage
+
+Runtime Preemption Specifiers
+-	Global values may have a runtime preemption specifier
+-	`dso_preemptable`, global value may be replaced by a outside linkage at runtime
+-	`dso_local`, global value will resolve to a symbol within the linkage unit
+-	Defaults to `dso_preemptable`
+
+Struct Types
+-	LLVM IR allows for specification of structs as both `literal` and `identified`
+-	`literal`, structs have the types of members explicitly stated
+-	`identified`, struct type have a name for the struct type
+
+
