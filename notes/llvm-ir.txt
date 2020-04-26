@@ -141,3 +141,40 @@ Parameter Attributes
 -	`swiftself`, indicates parameter is the object context parameter
 -	`swifterror`, used for optimizing Swift error handling
 -	`immarg`, indicates parameter is an immediate value
+
+Prefix Data
+-	Data associated with a function which code gen emits before function entry
+
+Prologue Data
+-	Allows code to be placed before a function's body
+
+Epilogue Data
+-	Allows code to be placed after a function's body
+
+Function Attributes
+-	Set to communicate extra info about a function
+-	Function attrs are a part of the function (not the function type)
+-	Ctrl+F `func-attr` on https://llvm.org/docs/LangRef.html for info
+
+Operand Bundles
+-	An operand bundle is a tagged set of SSA values associated with `call` or `invoke` insts
+-	Not part of function signature
+	=	Bundles are a component of the call, not the function
+-	Bundles are meant to support runtime introspections (reflection?)
+-	Bundle operands for an unknown operand bundle "escape in unknown ways" before control transfer
+-	Calls/invokes with bundle have unknown heap effects
+-	Bundle cannot change the implementation of the called function
+-	`deopt`, represent an alternate for the call site they're attached to
+	=	Allow a runtime to deoptimize at the call site
+-	Funclet, indicates a call is within a funclet
+-	Garbage collection transition operand bundle mark a call where GC strategy changes
+-	Assume, allows assumptions t be made about a parameter or function attribute
+
+Data Layout
+-	Module can specify the data layout with an encoded string
+-	The specification string is composed of `-` separated specifiers
+-	The list of specifiers may be found at https://llvm.org/docs/LangRef.html#data-layout
+
+Target Triple
+-	A string which describes the target
+-	Format {ARCHITECTURE}-{VENDOR}-{OS}-(optional: {ENVIRONMENT})
