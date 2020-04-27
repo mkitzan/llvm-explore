@@ -1,0 +1,55 @@
+MC Layer (Machine Code Layer)
+http://blog.llvm.org/2010/04/intro-to-llvm-mc-project.html
+
+Background
+-	LLVM used to use standalone assembler and disassembler programs
+	=	Standalone program will revalidate assembly
+	=	Requires forking
+	=	Old method use to take 20% of compile time
+-	Tried direct object emission from CodeGen
+	=	Essentially would require re-implementing existing functionality
+-	LLVM had some support for assembly and disassembly from JIT tools
+	=	Ideal to get an assembler, disassembler, and backend support
+
+Primary MC Classes
+-	Two categories "operates on instructions" and "everything else"
+-	`MCInst` represents an instruction with operands
+	=	Separate from CodeGen's `MachineInstr`
+-	`MCSymbol` represents a label
+-	`MCSection` represents a uniquely identified section of the current translation unit
+-	`MCExpr` base class for assembler expressions need when parsing
+-	MC layer lives at a low level as not to depend on the entire CodeGen
+
+MC Components
+-	Instruction printer
+	=	Target specific component implementing `MCInstPrinter`
+	=	Given an `MCInst`, it formats and emits the textual representation
+	=	Targets can have multiple instruction printers
+	=	Work independently from object file format
+-	Instruction encoder
+	=	Target specific component implementing `MCCodeEmitter`
+	=	Transforms an `MCInst` into a series of bytes and a list of relocations (?)
+-	Instruction parser
+	=	Allows for parsing of target specific syntax
+	=	Target implements `TargetAsmParser`
+	=	Lexer is mostly shared code based off common assembly syntax
+	=	Once parsed, an instruction is pattern matched into an `MCInst`
+	=	If all information is not deducible for an instruction it may be in a relaxed `MCInst` state
+-	Instruction decoder
+	=	Implements `MCDisassembler`
+	=	Turns series of bytes into `MCInst` and size
+	=	Target may implement multiple decoders
+-	Assembly parser
+	=	Handles all the information in a textual assembly file that is not an instruction
+	=	Target implements `MCStreamer`
+	=	`MCStreamer` has one virtual function per assembly directive and an `EmitInstruction`
+	=	`MCStreamer` is implemented by `MCAsmStreamer`
+		-=	`MCAsmStreamer` prints directives to textual assembly files
+		-=	`MCAsmStreamer` uses `MCInstPrinter` and assembly backend to write object files
+-	Assembler backend
+	-	An assembler backend is an implementation of `MCStreamer` and `MCAsmStreamer`
+	-	Lays out sections and resolves and relaxes instructions
+	-	Passes on info to code which writes an object file
+
+`llvm-mc` Tool
+-	Tool to access MC layer functionality
