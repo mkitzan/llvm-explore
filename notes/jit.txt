@@ -1,0 +1,25 @@
+JIT Compilation
+-	JIT (Just In Time), means compile the code at initial use point during runtime
+-	Code may be recompiled to factor in runtime performance information into optimizations
+
+Why JIT?
+-	Some languages can not be compiled ahead of time (traditionally interpreted languages)
+-	Shorten ahead of time compilation time (increase developer productivity)
+-	Specialize for code during runtime
+	=	Recompile for performance
+		-=	Deploying on heterogeneous hardware requires recompilation to account for specialized hardware
+	=	Recompile for other reasons
+
+JIT for C++ (ClangJIT)
+-	https://www.youtube.com/watch?v=pDagqR0jAvQ
+-	Requirements for a JIT tool
+	=	Natural integration into language (C++)
+	=	JIT compilation should not access source files during runtime
+	=	JIT compilation should not repeat work unnecessarily
+-	JIT enabled object file
+	=	Serialized AST
+		-=	Preprocessed and compressed source files
+		-=	Encoded in binary
+	=	Compilation command line arguments
+	=	Optimized IR
+	=	Local symbol table (non-exported symbol in translation unit)
