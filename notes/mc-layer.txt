@@ -1,5 +1,7 @@
 MC Layer (Machine Code Layer)
 http://blog.llvm.org/2010/04/intro-to-llvm-mc-project.html
+http://llvm.org/docs/CodeGenerator.html#the-mc-layer
+http://llvm.org/docs/CodeGenerator.html#code-emission
 
 Background
 -	LLVM used to use standalone assembler and disassembler programs
@@ -11,13 +13,28 @@ Background
 -	LLVM had some support for assembly and disassembly from JIT tools
 	=	Ideal to get an assembler, disassembler, and backend support
 
+MC Layer
+-	LLVM layer which processes code without "high-level" information
+-	MC layer handles: label names, machine instructions, and object file sections
+-	Used to generate textual assembly files or object code
+-	Used by `llvm-mc` to implement standalone assemblers and disassemblers
+-	MC layer works at the abstraction of the object file
+	=	Does not have functions or global variables
+	=	Instead has labels, directives, and instructions
+
 Primary MC Classes
 -	Two categories "operates on instructions" and "everything else"
 -	`MCInst` represents an instruction with operands
 	=	Separate from CodeGen's `MachineInstr`
 -	`MCSymbol` represents a label
+	=	Assembler temporary label is used by assembler but is discarded
+	=	Normal label appears in object file
 -	`MCSection` represents a uniquely identified section of the current translation unit
+	=	Subclassed depending on specific object file implementation
 -	`MCExpr` base class for assembler expressions need when parsing
+-	`MCContext` class owns MC layer specific data structures including symbols and sections
+	=	Can not be subclassed
+	=	Used to create symbols and sections
 -	MC layer lives at a low level as not to depend on the entire CodeGen
 
 MC Components
@@ -51,5 +68,18 @@ MC Components
 	-	Lays out sections and resolves and relaxes instructions
 	-	Passes on info to code which writes an object file
 
+Compiler Integration and Code Emission
+-	`TargetRegistry` initialization must call `RegisterAsmStreamer` and `RegisterMCObjectStreamer`
+-	CodeGen `MachineInstr` must be lowered to MC layer `MCInst` which may then lowered through the MC layer
+	=	Lowering is performed with the help of three classes
+		-=	Target agnostic `AsmPrinter`, target specific `{Target}AsmPrinter`, and `TargetLoweringObjectFile`
+	=	`AsmPrinter` lowers `MachineFunction` into MC labels and provides helper functions
+	=	`TargetLoweringObjectFile` implements logic for common object files (ELF, MachO, COFF)
+	=	`{Target}AsmPrinter` takes `MCInst` and renders it with as text
+		-=	Most of this functionality can be generated from `TableGen`
+	=	`{Target}MCInstLower` lowers target specific `MachineInstr` to `MCInst`
+	=	Implement a target specific subclass of `MCCodeEmitter` to lower `MCInst` into machine code bytes
+
 `llvm-mc` Tool
 -	Tool to access MC layer functionality
+-	Implements a static assembler and disassembler using MC layer components 
