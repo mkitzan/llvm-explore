@@ -1,0 +1,60 @@
+Using Metal and Metal Shading Language
+https://developer.apple.com/documentation/metal/basic_tasks_and_concepts/performing_calculations_on_a_gpu
+
+MSL
+-	MSL is a C++ variant
+-	.metal file extension
+-	Xcode builds Metal shaders into a default library embedded in app
+-	`kernel` function specifier keyword
+	=	Declares a function is public, which means app can be called
+		-=	Public functions may not be called by other shader functions
+	=	Declares a function is a compute function
+		-=	Compute functions perform parallel calculations using a thread grid
+-	`device` pointer address space specifier keyword
+	=	Declares that a pointer points to `device` address space
+		-=	`device` address space is persistent read / write memory
+	=	All pointers must have a pointer address space specifier
+-	`[[thread_position_in_grid]]` argument attribute keyword
+	=	Provides the function the index in the thread grid of the executing thread
+	=	Different usage from C++ attribute specifier
+	=	Used in from `uint index [[thread_position_in_grid]]`
+
+Using Metal in Objective-C
+-	App needs an `MTLDevice` which is an abstraction of the GPU
+	=	`MTLDevice` is used to create GPU resources
+	=	Mac platforms may have multiple GPUs
+		-=	`MTLCreateSystemDefaultDevice` gets the default GPU on the platform
+-	To use a GPU function, must get a `MTLLibrary` object from `MTLDevice`
+	=	Can then ask the `MTLLibrary` object for specific `MTLFunction` object
+	=	`MTLFunction` represents a specific shader function from the queried library
+	=	`MTLFunction` is converted to executable code by creating a pipeline
+-	Pipelines specify a task / data for the GPU to perform / perform on
+	=	Metal pipelines are represented as "pipeline state objects"
+	=	A compute pipeline are captured in `MTLComputePipelineState`
+	=	A compute pipeline executes a single compute function (or `kernel`)
+		-=	May manipulate input data before running and the output data before ending
+	=	Creating a pipeline state object requires finishing compilation of the `kernel`
+		-=	For performance, ensure this is asynchronous
+-	`MTLCommandQueue` is used to send tasks to the GPU
+	=	Command queues are created from `MTLDevice` objects
+-	GPU memory are represented with `MTLResource` objects
+	=	`MTLResource` objects may be have different storage modes
+		-=	Storage modes denote whether data is owned by GPU or shared with OS
+	=	`MTLBuffer` is a memory allocation without a predefined format
+		-=	Format of the buffer is specified on use through OpenGL-like VertexArrayAttribs
+-	`MTLCommandBuffer` object stores an encoded GPU task
+	=	`MTLCommandBuffer` are created from `MTLCommandQueue` objects
+	=	An `MTLCommandBuffer` can only be used with the `MTLCommandQueue` which created it
+-	A command encoder is used to encode a pipeline state object with arguments into a command buffer
+	=	Different command encoders depending on GPU task
+		-=	`MTLComputeCommandEncoder` is used for compute workloads
+	=	Command encoder functions are used to set the pipeline state object
+	=	Command encoder functions are used to bind buffers to specific function parameters
+		-=	Can also define offsets into buffers to use a single buffer for multiple parameters
+	=	Command encoder functions are used to encode thread group and workload size information
+	=	Once all information has been provided, app invokes `endEncoding` function
+-	Once a encoding is completed, the app commits the task to the `MTLCommandBuffer`
+	=	Committing a task causes Metal to asynchronously prepare and execute the task on the GPU
+	=	On task completion, Metal marks the command buffer as complete
+-	On completion of the task, the output `MTLBuffer` object will have results
+	=	The pointer to the `MTLBuffer` object can be used to read the output

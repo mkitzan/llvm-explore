@@ -85,4 +85,4 @@ POST-ISEL GPU Pipeline
 	=	Push memory access up to increase latency hiding, but must be aware of register pressure
 	=	Batching texture fetches to same texture
 	=	Order memory accesses by address to coalesce memory access to increase cache performance
-	=	Interleave instrutions to avoid pipeline bubbles
+	=	Interleave instructions to avoid pipeline bubbles
