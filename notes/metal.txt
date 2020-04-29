@@ -1,5 +1,6 @@
 Using Metal and Metal Shading Language
 https://developer.apple.com/documentation/metal/basic_tasks_and_concepts/performing_calculations_on_a_gpu
+https://developer.apple.com/documentation/metal/basic_tasks_and_concepts/using_metal_to_draw_a_view_s_contents
 
 MSL
 -	MSL is a C++ variant
@@ -19,7 +20,7 @@ MSL
 	=	Different usage from C++ attribute specifier
 	=	Used in from `uint index [[thread_position_in_grid]]`
 
-Using Metal in Objective-C
+Basic Metal in Objective-C
 -	App needs an `MTLDevice` which is an abstraction of the GPU
 	=	`MTLDevice` is used to create GPU resources
 	=	Mac platforms may have multiple GPUs
@@ -58,3 +59,30 @@ Using Metal in Objective-C
 	=	On task completion, Metal marks the command buffer as complete
 -	On completion of the task, the output `MTLBuffer` object will have results
 	=	The pointer to the `MTLBuffer` object can be used to read the output
+
+Creating and Rendering a MetalKit View
+-	MetalKit handles windows, texture loading, and 3d models
+-	`MTKView` handles drawing to the screen
+	=	`MTKView` subclasses `NSView` on macOS and `UIView` on iOS and tvOS
+	=	`MTKView` requires a Metal device	
+	=	`clearColor` member denotes the background color
+		-=	Use `MTLClearColorMake(R{float}, G{float}, B{float}, Alpha{float})
+	=	If view is unanimated, `enableSetNeedsDisplay` only draws when content needs updating
+-	`MTKView` uses a delegate renderer to inform app when rendering is required
+	=	Delegate implements two important callbacks
+		-=	`drawableSizeWillChange` and `drawInMTKView`
+		-=	`drawableSizeWillChange` is used for resizing the view
+		-=	`drawInMTKView` renders using a command buffer and encoded commands
+-	A render pass is a sequence of commands used to draw to the screen
+	=	Rendering draws to a set of textures
+	=	`MTLRenderPassDescriptor` is used to create a render pass
+	=	Render pass descriptor describes a set of render targets
+	=	Render pass is created with a `MTLRenderCommandEncoder`
+		-=	Obtained by calling `renderCommandEncoderWithDescriptor` on an `MTLRenderPassDescriptor`
+-	Drawing to screen requires a texture which is a "drawable object"
+	=	`MTKView` creates drawable objects for textures it manages
+	=	The render pass texture target's drawable object can be obtained with `currentDrawable`
+	=	To schedule the texture for rendering call `presentDrawable` on the command buffer
+		-=	Pass the drawable object to `presentDrawable`
+	=	`presentDrawable` will schedule the drawable to be rendered alongside other visual updates
+	=	`commit` the command buffer to launch the task
