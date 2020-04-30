@@ -1,6 +1,7 @@
 Using Metal and Metal Shading Language
 https://developer.apple.com/documentation/metal/basic_tasks_and_concepts/performing_calculations_on_a_gpu
 https://developer.apple.com/documentation/metal/basic_tasks_and_concepts/using_metal_to_draw_a_view_s_contents
+https://developer.apple.com/documentation/metal/using_a_render_pipeline_to_render_primitives
 
 MSL
 -	MSL is a C++ variant
@@ -86,3 +87,31 @@ Creating and Rendering a MetalKit View
 		-=	Pass the drawable object to `presentDrawable`
 	=	`presentDrawable` will schedule the drawable to be rendered alongside other visual updates
 	=	`commit` the command buffer to launch the task
+
+Rendering Primitives with Metal
+-	Metal render pipeline models the graphics pipeline
+-	Inputs to pipeline stages are provided by app or preceding pipeline stages
+-	Can use `simd/simd.h` library to use SIMD types like `vector_float2`
+-	`vertex` function specifier keyword declares a function as a vertex shader
+-	`[[vertex_id]]` argument attribute tells Metal to pass an index to the vertex for the executing thread
+-	`[[buffer(n)]]` argument qualifier tells Metal what buffer index offsets to use
+	=	Without `[[buffer(n)]]`, Metal assigns the slot automatically
+-	`fragment` function specific keyword declares a function as a fragment shader
+-	`[[stage_in]]` argument qualifier declares the argument is the result of the previous pipeline stage
+-	Create a `MTLRenderPipelineState` to bind a render pipeline
+-	Create a `MTLRenderPipelineDescriptor` to configure a render pipeline with specific shader functions
+	=	App binds `vertexFunction` and `fragmentFunction` to `MTLRenderPipelineDescriptor`
+	=	App also specifies the pixel format with `MTLPixelFormat`
+		-=	 This defines the memory layout of pixels
+		-=	In example, the `MTKView` provides the pixel format
+-	Must set the `MTLViewport` in the encoder to tell Metal how big the viewport is
+	=	Use encoder's `setViewport` function
+-	Can transfer small amounts of data to Metal without a `MTLBuffer`
+	=	Do so by copying data into command buffer
+	=	Use encoder's `setVertexBytes` function to bind vertex and viewport data
+	=	The data will be mapped to the specified arguments of the vertex shader
+-	Tell the encoder the primitive to render with `drawPrimitives` function
+	=	`MTLPrimitiveTypeTriangle` takes two arguments `vertexStart` and `vertexCount`
+		-=	`vertexStart` indicates the starting index in the provided data
+		-=	`vertexCount` indicates the number of vertices
+-	Encoding may then be ended and committed to begin rendering
