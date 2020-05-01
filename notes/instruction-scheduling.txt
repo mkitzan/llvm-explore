@@ -1,0 +1,88 @@
+Instruction Scheduling
+https://www.youtube.com/watch?v=brpomKUynEA
+
+Basics
+-	Goal is to reorder instructions to
+	=	Reduce stalls
+	=	Maximize issue width
+	=	Reduce register pressure
+-	Optimizing these domains requires making optimal use of the processor pipeline
+	=	Generally, an inst goes through a fetch then decode stage
+	=	Following, the operation will execute
+		-=	If multiple available hardware units, then may have a stage piping op to unit
+	=	Result is written back to register following execution
+-	If there exists a dependency between the output of an operation and the input of another
+	=	The waiting operation must stall the pipeline until its operand is written back to register
+	=	Stalls impact succeeding operations in the pipeline
+		-=	Succeeding operations must wait for the pipeline resource which the stall source occupies
+
+List Scheduling (High-level Algorithm)
+-	Typical scheduling method implemented by instruction schedulers
+-	Construct a DAG modeling the def-use dependencies of operations
+-	Edge weights based on heuristics (source order, reduce register pressure, target info...)
+-	Perform, essentially, a reverse topological traversal of the DAG (top-down, reverse for bottom-up)
+-	Begin with priority queue (frontier) of DAG leaf instructions (no dependencies)
+-	Dequeue and schedule instruction from the priority queue
+	=	Remove instruction as a use from users
+	=	If the previous users are now leaf nodes, enqueue them for scheduling
+-	Potentially update weights given present schedule
+
+LLVM Schedulers
+-	Legacy scheduler `ScheduleDAGRRList`
+	=	Brings selections DAG into a linear order of machine insts
+-	New scheduler `MachineScheduler`
+	=	Models pipeline resource usage per inst and register value life time
+	=	Customizable and extensible
+	=	Performs scheduling before and after register allocation
+		-=	Scheduling impacts register allocation
+		-=	Important to model impact of scheduling on register allocation
+	=	Once registers are allocated, can schedule more aggressively
+		-=	Opportunity to re-schedule spill / reload code
+	=	Can perform top-down or bottom-up scheduling within a basic block
+		-=	 By default does both and picks best schedule
+	=	Picking best candidate is evaluated by heuristics implemented in `tryCandidate()`
+
+`GenericScheduler::tryCandidate()` Heuristics
+-	Physical register copies
+-	Register pressure (excess and critical pressure)
+-	Acyclic latency
+-	Clusters
+-	Register pressure (current max)
+-	Latency
+-	Source order
+
+Target Specific Pipeline Information
+-	`TargetSchedModel` provides the description / hooks about the target's pipeline
+-	Usually generated with TableGen
+-	Target defines operand categories (`SchedReadWrite`)
+	=	Think add categories, multiply categories, read categories, load categories...
+	=	Categories are associated with actual instructions
+-	Subtargets define description of pipeline and resources
+	=	Associate categories with resources and latencies
+	=	Maps instructions to their resource requirements
+-	Resources like out-of-order buffers may not be simulated to maximum extent during scheduling
+
+Customizing and Extending `MachineScheduler`
+-	Customize scheduling policy
+	=	Implement `overrideSchedPolicy` function in subtarget
+	=	Choose specific scheduling order (top-down / bottom-up)
+	=	Disable heuristics
+-	Custom `MachineSchedStrategy` implementation
+	=	`MachineSchedStrategy` implementations are used to drive scheduling strategies
+	=	Need a data structure to queue nodes
+	=	Add available nodes to queue for scheduling by implementing callbacks to queue
+	=	Implement algorithm to choose next node to schedule `pickNode()`
+	=	Implement `schedNode()` callback to update state after a node has been scheduled
+		-=	Good place to adjust weights given new schedule
+	=	Once implemented, register `MachineSchedStrategy` to scheduler `PassConfig`
+	=	Can re-use `GenericScheduler` by overriding specific functions which you want to tweak
+-	DAG mutations - adds constraints to dependency graph which can't be modeled in TableGen
+	=	Adjust dependencies given target knowledge
+	=	Has tradeoff with scheduler flexibility
+	=	Example: cmp+jump may execute faster if executed back-to-back
+	=	General implementation steps
+		-=	Find candidate for fusion by looking at predecessors
+		-=	Add a weak edge "cluster edge" between two instructions to ensure a scheduling order
+		-=	Add artificial edges to prevent scheduling instructions between the desired fusion
+	=	Implement `apply()` function in a subclass of `ScheduleDAGMutation`
+		-=	Register the mutation subclass in `MachineScheduler`

@@ -16,7 +16,7 @@ This is a mini-pipeline to optimize four simple C functions:
 -	[`int branchless_max(int value, int max)`](https://github.com/mkitzan/llvm-explore/blob/master/input/c/branchless_max.c)
 
 The un-optimized LLVM IR for these functions were riddled with unnecessary memory accesses.
-The goal of the pipeline is to eliminate all the memory accesses and collapse primitive conditional branches into `select` IR instructions. The final output of the pipeline should be very close to the emitted IR when the functions are compiled with an optimization flag greater than 0.
+The goal of the pipeline is to eliminate all the memory accesses and collapse primitive conditional branches into `select` IR instructions. The final output of the pipeline should be very close to the emitted IR when the functions are compiled with optimizations enabled.
 
 The pipeline is composed of four passes where each optimization pass sets up the IR for the next optimization pass.
 The four passes are the following and are meant to execute in the following order:

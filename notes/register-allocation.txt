@@ -17,6 +17,11 @@ Basics
 	=	Virtual reg rewrite
 	=	More steps post-allocation
 -	`%` prefixes virtual registers and `$` prefixes physical registers
+-	Register allocation can happen multiple times in the backend
+	=	Can regalloc before inst scheduling, then again after scheduling
+	=	Second round of scheduling may occur after the second regalloc for scheduling spill / reload insts
+	=	Generally see a pipeline like the above in particularity register pressure sensitive targets (GPUs)
+	=	Note: regalloc and inst scheduling are tightly knit regardless
 
 Phi Elimination
 -	Phi insts are replaced with copy insts in predecessor blocks and the phi itself
