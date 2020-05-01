@@ -1,0 +1,127 @@
+Register Allocation
+https://www.youtube.com/watch?v=IK8TMJf3G6U
+
+Basics
+-	Maps virtual registers to target machine registers
+-	Limited by target register count and usage conventions
+-	Goal to minimize spill / reload code, use as few registers, reduce copy insts
+-	Allocation pass pipeline
+	=	Live variables
+	=	Phi elimination
+	=	Two address instructions
+	=	Slot indexes
+	=	Live intervals
+	=	Register coalescing
+	=	Machine scheduler
+	=	Greedy reg allocator
+	=	Virtual reg rewrite
+	=	More steps post-allocation
+-	`%` prefixes virtual registers and `$` prefixes physical registers
+
+Phi Elimination
+-	Phi insts are replaced with copy insts in predecessor blocks and the phi itself
+	=	Part of breaking out of SSA
+-	Hints to register allocator which values should be assigned to the same register
+-	Phi requires an extra copy for itself in case uses of predecessor defs clobber value
+
+Two Address Instructions
+-	A two address instruction is one which writes to the same register it reads
+	=	SSA requires new def, so it cannot represent this
+-	Replace use of original def with a copy of the def
+	=	The two address inst will use the copy's def as input and output
+	=	Part of breaking out of SSA
+-	Commutative operations allow for operands to be swapped
+	=	Commutative two address insts may allow for better copy elimination by swapping operands
+
+Register Coalescing
+-	Eliminate as many copies
+-	If copies do not interfere with uses then copy is eliminated and users replaced with copy source
+	=	Interference is where copy source is modified following the copy
+	=	Uses prior to source value clobbering could still use source register
+		-=	Copy inst could be deferred to point before register value clobbering
+		-=	Deferred copy may not make sense if deferral moves copy into a hot control path
+
+Liveness Representation
+-	A value which is potentially used later on then it is alive
+	=	Fundamentally, if two values are alive at once they should be given unique registers
+-	Liveness is represented as intervals
+	=	Slot indexes pass numbers instructions which is used to define live intervals
+	=	Numbering starts at 0 and increases by 16 for each inst to accommodate potential copies
+	=	Live intervals are lists of intervals
+-	Slots `B`, `e`, `r`, `d`
+	=	`B` slot "Base / Block"
+		-=	Indicates beginning of basic block
+	=	`e` slot "EarlyClobber"
+		-=	Used when inlining assembly
+		-=	Output registers of a function must not interfere with input registers
+	=	`r` slot "Register"
+		-=	Used by typical instruction to read and write values in register
+	=	`d` slot "Dead"
+		-=	Register is written but never read (liveness will be short - spanning one inst)
+-	Value numbering
+	=	Each interval is given an SSA-like value number
+	=	Includes information about which slot index the value was defined
+	=	Value number starting at a `B` slot indicates a control flow join
+		-=	Value may be propagated from any predecessor
+
+RegAllocBase
+-	Provides infrastructure for creating a register allocator
+-	Has a virtual register priority queue
+-	LiveRegMatrix for interference checking (tuned B+ tree)
+-	Default allocator RegAllocGreedy implemented on RegAllocBase
+-	Core loop
+	=	enqueue new virtual registers
+	=	dequeue virtual register
+	=	`selectOrSplit`
+
+RegAllocGreedy
+-	`enqueue()` priority queue prioritizes in the following order
+	=	Longer global live range
+		-=	Generally, more constraints with long live ranges
+	=	Live ranges with physical register hints
+		-=	ABI and function params allow use of same register they were copied into
+	=	Sort block-local ranges in inst order
+		-=	Live ranges within a single basic block are sorted and allocated in order
+	=	Low priority for virtual registers
+-	`selectOrSplit()`
+	=	`tryAssign()`
+		-=	Cycle through target defined register class register allocation order
+		-=	Assign virtual register to first match (if there is a match)
+		-=	If no assignment, move onto `tryEvict()`
+	=	`tryEvict()`
+		-=	Revert an existing assignment if beneficial
+		-=	Re-enqueue evicted registers with incremented eviction counter
+		-=	Can only evict registers with lower evict counter
+	=	`trySplit()`
+		-=	Insert a copy in the middle of a live range to split the live range
+		-=	May split around loops, constrained target insts, and calls
+		-=	`tryLocalSplit()` splits around calls
+		-=	`tryInstructionSplit()` splits around constrained insts
+		-=	`tryRegionSplit()` / `tryBlockSplit()` split at region boundaries
+		-=	Splitting produces new virtual registers which are inserted into the priority queue
+	=	`spill()`
+		-=	Replace stores after definitions and loads before uses
+		-=	`SpillPlacer` determines spill positions
+	=	`tryLastChanceRecoloring()`
+		-=	If error stage is reached using normal heuristics, attempt a global recoloring to find a match 
+
+Virtual Register Rewriter
+-	Allocator stores register mapping in `VirtRegMap`
+-	`VirtRegRewrite` pass replaces virtual registers for physical register
+-	Builds block live-in list used by later passes
+	=	Tracks the registers alive at the beginning of a basic block
+
+`PrologEpilogInsertion` Pass
+-	Saves and restores callee saved registers
+	=	Callee-saved registers (non-volatile / call-preserved) are used to hold values with a long lifetime
+		-=	Opposed to caller-saved registers are temporary values which don't need to be saved across a call
+	=	Callee expected values in callee-saved registers to be preserved across a call site 
+
+Register Scavenging
+-	Post allocation, during prolog / epilog insertion, temporary value may need to be stored into a register
+	=	Stage will insert spills / reloads
+	=	Spill space needs to be set in advance of frame setup
+		-=	Target must anticipates a spill and leave space on the stack
+-	Scavenging stage performs mini regalloc
+	=	Can create virtual registers with a single definition
+	=	Can only handle users within a basic block
